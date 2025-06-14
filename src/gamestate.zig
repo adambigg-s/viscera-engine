@@ -5,94 +5,24 @@ const win = lib.win;
 const ren = lib.ren;
 
 pub const Simulation = struct {
-    targets: std.ArrayList(Target),
-    target_count: usize,
-    target_size: f32,
-    score: u16,
-    spawn: ren.Box3,
-    target_score: u16,
     player: Player,
     tick: usize,
 
     const Self = @This();
 
     pub fn init(allocator: std.mem.Allocator) !Self {
-        var simulation = Simulation{
-            .targets = std.ArrayList(Target).init(allocator),
-            .target_count = 10,
-            .target_size = 10,
-            .score = 0,
-            .spawn = ren.Box3.build(
-                vec.Vec3(f32).build(-500, -10, -500),
-                vec.Vec3(f32).build(500, 150, 500),
-            ),
-            .target_score = 100,
+        _ = .{allocator};
+        const simulation = Simulation{
             .player = Player.new(),
             .tick = 0,
         };
-        simulation.addTarget();
 
         return simulation;
     }
 
-    pub fn deinit(self: *Self) void {
-        self.targets.deinit();
-    }
-
     pub fn update(self: *Self, inputs: *Inputs) !void {
         self.player.update(inputs);
-        if (inputs.mouse_click) {
-            self.targetHit();
-        }
         self.tick += 1;
-    }
-
-    pub fn isComplete(self: *Self) bool {
-        return self.score >= self.target_score;
-    }
-
-    fn targetHit(self: *Self) void {
-        for (self.targets.items, 0..self.targets.items.len) |target, index| {
-            if (target.rayIntersection(self.player.pos, self.player.front)) {
-                self.randomTargetIndex(index);
-                self.score += 1;
-            }
-        }
-    }
-
-    fn randomTargetIndex(self: *Self, index: usize) void {
-        self.targets.items[index] = self.randomTarget();
-    }
-
-    fn randomTarget(self: *Self) Target {
-        return Target{
-            .pos = lib.randomVec3().mulComponent(self.spawn.max),
-            .size = self.target_size,
-        };
-    }
-
-    fn addTarget(self: *Self) void {
-        // ensure there is one target direclty where you spawn for debugging
-        for (0..self.target_count) |_| {
-            self.targets.append(self.randomTarget()) catch return;
-        }
-    }
-};
-
-pub const Target = struct {
-    size: f32,
-    pos: vec.Vec3(f32),
-
-    const Self = @This();
-
-    pub fn rayIntersection(self: *const Self, origin: vec.Vec3(f32), direction: vec.Vec3(f32)) bool {
-        const relative = origin.sub(self.pos);
-        const alpha = direction.innerProduct(direction);
-        const beta = 2 * relative.innerProduct(direction);
-        const gamma = relative.innerProduct(relative) - self.size * self.size;
-        const discriminant = beta * beta - 4 * alpha * gamma;
-
-        return discriminant > 0;
     }
 };
 
@@ -207,7 +137,7 @@ pub const Inputs = struct {
 
     const Self = @This();
 
-    pub fn init() Self {
+    pub fn init() !Self {
         // this prevents bugs where the first call is ub
         _ = win.getKeyState(win.vk_w);
         _ = win.getKeyState(win.vk_a);
@@ -217,7 +147,7 @@ pub const Inputs = struct {
         _ = win.getKeyState(win.vk_f);
         _ = win.getKeyState(win.vk_escape);
         _ = win.getKeyState(win.vk_mouse_lbutton);
-        _ = win.setCursorPos(1920, 1080) catch unreachable;
+        _ = try win.setCursorPos(1920, 1080);
 
         return Inputs{
             .mouse_delta = vec.Vec2(i32).zeros(),

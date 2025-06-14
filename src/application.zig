@@ -13,7 +13,6 @@ pub const Application = struct {
     const Self = @This();
 
     pub fn deinit(self: *Self) void {
-        self.simulation.deinit();
         self.renderer.deinit();
     }
 
@@ -31,9 +30,6 @@ pub const Application = struct {
             try win.setCursorPos(1920, 1080);
 
             try self.simulation.update(&self.inputs);
-            if (self.simulation.isComplete()) {
-                break;
-            }
 
             // debugging stuff
             if (@import("builtin").mode == .Debug) {

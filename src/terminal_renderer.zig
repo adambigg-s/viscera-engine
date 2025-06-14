@@ -22,8 +22,98 @@ pub const FrustumPlane = struct {
     };
 };
 
+// https://en.wikipedia.org/wiki/Braille_Patterns
+pub const Braille = struct {
+    pub const width = 2;
+    pub const height = 4;
+    pub const start = 0x2800;
+    pub const count = Self.width * Self.height;
+    pub const bitmap = [][]comptime_int{
+        .{ 0, 3 },
+        .{ 1, 4 },
+        .{ 2, 5 },
+        .{ 6, 7 },
+    };
+
+    const Self = @This();
+};
+
+pub const TerminalInfo = struct {
+    screen_aspect: f32,
+    char_apsect: f32,
+    render_freq: usize,
+
+    const Self = @This();
+
+    pub fn shouldRender(self: *Self, tick: usize) bool {
+        return 0 == tick % self.render_freq;
+    }
+};
+
+pub fn Buffer(comptime T: type) type {
+    return struct {
+        width: usize,
+        height: usize,
+        data: std.ArrayList(T),
+        clear_value: T,
+        allocator: std.mem.Allocator,
+
+        const Self = @This();
+        const Alloc = std.mem.Allocator;
+
+        pub fn init(width: usize, height: usize, allocator: Alloc, clear_value: T) !Self {
+            var data = try std.ArrayList(T).initCapacity(allocator, width * height);
+            data.expandToCapacity();
+            var output = Buffer(T){
+                .width = width,
+                .height = height,
+                .data = data,
+                .clear_value = clear_value,
+                .allocator = allocator,
+            };
+            output.clear();
+
+            return output;
+        }
+
+        pub fn deinit(self: *Self) void {
+            self.data.deinit();
+        }
+
+        pub fn clear(self: *Self) void {
+            @memset(self.data.items, self.clear_value);
+        }
+
+        pub fn get(self: *Self, x: usize, y: usize) ?T {
+            if (!self.inbounds(x, y)) {
+                return null;
+            }
+
+            return self.data.items[self.index(x, y)];
+        }
+
+        pub fn set(self: *Self, x: usize, y: usize, data: T) bool {
+            if (!self.inbounds(x, y)) {
+                return false;
+            }
+
+            self.data.items[self.index(x, y)] = data;
+            return true;
+        }
+
+        fn index(self: *Self, x: usize, y: usize) usize {
+            return self.width * y + x;
+        }
+
+        fn inbounds(self: *Self, x: usize, y: usize) bool {
+            return x < self.width and y < self.height;
+        }
+    };
+}
+
 pub const Renderer = struct {
     main: Buffer(u21),
+    braille: Buffer(u32),
     depth: Buffer(f32),
     width: usize,
     height: usize,
@@ -45,6 +135,7 @@ pub const Renderer = struct {
             lib.nearestLowerOdd(usize, width),
             lib.nearestLowerOdd(usize, height),
         };
+        const braille_width, const braille_height = .{ width * Braille.width, height * Braille.height };
 
         // need to query this later for proper scale rendering
         var terminal_info: TerminalInfo = undefined;
@@ -54,6 +145,7 @@ pub const Renderer = struct {
 
         return Renderer{
             .main = try Buffer(u21).init(width, height, allocator, ' '),
+            .braille = try Buffer(u32).init(braille_width, braille_height, allocator, Braille.start),
             .depth = try Buffer(f32).init(width, height, allocator, Self.infinity),
             .width = width,
             .height = height,
@@ -63,33 +155,18 @@ pub const Renderer = struct {
 
     pub fn deinit(self: *Self) void {
         self.main.deinit();
+        self.braille.deinit();
         self.depth.deinit();
     }
 
     pub fn clear(self: *Self) void {
         self.main.clear();
+        self.braille.clear();
         self.depth.clear();
     }
 
     pub fn renderSimulation(self: *Self, simulation: *sim.Simulation) void {
-        // render the box the player is confined to
-        const edges = simulation.spawn.toLinestrip();
-        for (0..edges.len / 2) |index| {
-            const p1 = edges[2 * index + 0];
-            const p2 = edges[2 * index + 1];
-            const a = Vec3.build(p1[0], p1[1], p1[2]);
-            const b = Vec3.build(p2[0], p2[1], p2[2]);
-
-            self.renderLineClipped(&simulation.player, a, b, '|');
-        }
-
-        // draws and X for the actual targets rn
-        for (simulation.targets.items) |target| {
-            self.renderPoint(&simulation.player, target.pos, 'X');
-        }
-
-        // jank "crosshair" lol for now
-        self.renderText("0", vec.Vec2(usize).build(self.width / 2, self.height / 2));
+        _ = .{ self, simulation };
     }
 
     pub fn commitPass(self: *Self) !void {
@@ -369,79 +446,6 @@ pub const Renderer = struct {
         return .{ @as(f32, @floatFromInt(self.width)) / 2, @as(f32, @floatFromInt(self.height)) / 2 };
     }
 };
-
-pub const TerminalInfo = struct {
-    screen_aspect: f32,
-    char_apsect: f32,
-    render_freq: usize,
-
-    const Self = @This();
-
-    pub fn shouldRender(self: *Self, tick: usize) bool {
-        return 0 == tick % self.render_freq;
-    }
-};
-
-pub fn Buffer(comptime T: type) type {
-    return struct {
-        width: usize,
-        height: usize,
-        data: std.ArrayList(T),
-        clear_value: T,
-        allocator: std.mem.Allocator,
-
-        const Self = @This();
-        const Alloc = std.mem.Allocator;
-
-        pub fn init(width: usize, height: usize, allocator: Alloc, clear_value: T) !Self {
-            var data = try std.ArrayList(T).initCapacity(allocator, width * height);
-            data.expandToCapacity();
-            var output = Buffer(T){
-                .width = width,
-                .height = height,
-                .data = data,
-                .clear_value = clear_value,
-                .allocator = allocator,
-            };
-            output.clear();
-
-            return output;
-        }
-
-        pub fn deinit(self: *Self) void {
-            self.data.deinit();
-        }
-
-        pub fn clear(self: *Self) void {
-            @memset(self.data.items, self.clear_value);
-        }
-
-        pub fn get(self: *Self, x: usize, y: usize) ?T {
-            if (!self.inbounds(x, y)) {
-                return null;
-            }
-
-            return self.data.items[self.index(x, y)];
-        }
-
-        pub fn set(self: *Self, x: usize, y: usize, data: T) bool {
-            if (!self.inbounds(x, y)) {
-                return false;
-            }
-
-            self.data.items[self.index(x, y)] = data;
-            return true;
-        }
-
-        fn index(self: *Self, x: usize, y: usize) usize {
-            return self.width * y + x;
-        }
-
-        fn inbounds(self: *Self, x: usize, y: usize) bool {
-            return x < self.width and y < self.height;
-        }
-    };
-}
 
 // https://en.wikipedia.org/wiki/Bresenham%27s_line_algorithm
 pub const LineTracer = struct {
