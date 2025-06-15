@@ -28,7 +28,7 @@ pub const Braille = struct {
     pub const height = 4;
     pub const start = 0x2800;
     pub const count = Self.width * Self.height;
-    pub const bitmap = [][]comptime_int{
+    pub const bitmap: [4][2]comptime_int = .{
         .{ 0, 3 },
         .{ 1, 4 },
         .{ 2, 5 },

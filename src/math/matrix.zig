@@ -20,6 +20,7 @@ pub fn Mat2(comptime T: type) type {
                     }
                 }
             }
+
             return Self{ .inner = inner };
         }
 
@@ -82,6 +83,7 @@ pub fn Mat3(comptime T: type) type {
                     }
                 }
             }
+
             return Self{ .inner = inner };
         }
 
@@ -145,6 +147,7 @@ pub fn Mat4(comptime T: type) type {
                     }
                 }
             }
+
             return Self{ .inner = inner };
         }
 
@@ -192,21 +195,83 @@ pub fn Mat4(comptime T: type) type {
     };
 }
 
-pub fn MatN(comptime N: usize, comptime T: type) type {
+pub fn MatN(comptime T: type, comptime N: usize) type {
     return struct {
         inner: [N][N]T,
 
-        pub const width = N;
-        pub const height = N;
+        pub const dim = N;
+
+        const Self = @This();
+
+        pub fn identity() Self {
+            comptime var inner: [Self.dim][Self.dim]T = undefined;
+            @setEvalBranchQuota(1_000_000);
+            comptime {
+                for (0..Self.dim) |i| {
+                    for (0..Self.dim) |j| {
+                        inner[i][j] = if (i == j) 1 else 0;
+                    }
+                }
+            }
+
+            return Self{ .inner = inner };
+        }
+
+        pub fn zeros() Self {
+            comptime var inner: [Self.dim][Self.dim]T = undefined;
+            @setEvalBranchQuota(1_000_000);
+            comptime {
+                for (0..Self.dim) |i| {
+                    for (0..Self.dim) |j| {
+                        inner[i][j] = 0;
+                    }
+                }
+            }
+
+            return Self{ .inner = inner };
+        }
+
+        pub fn mulVec(self: *const Self, vector: vec.VecN(T, Self.dim)) vec.VecN(T, Self.dim) {
+            std.debug.assert(Self.dim == vector.dim);
+
+            const m = self.inner;
+            const v = vector;
+            var result = vec.VecN(T, Self.dim).zeros();
+
+            for (0..Self.dim) |i| {
+                var sum: T = 0;
+                for (0..Self.dim) |j| {
+                    sum += m[i][j] * v[j];
+                }
+                result.inner[i] = sum;
+            }
+
+            return result;
+        }
+
+        pub fn mulMat(self: *const Self, other: *const Self) Self {
+            const a = self.inner;
+            const b = other.inner;
+
+            var inner: [Self.dim][Self.dim]T = Self.zeros().inner;
+
+            for (0..Self.dim) |i| {
+                for (0..Self.dim) |j| {
+                    for (0..Self.dim) |k| {
+                        inner[i][j] += a[i][k] * b[k][j];
+                    }
+                }
+            }
+
+            return Self{ .inner = inner };
+        }
     };
 }
 
 test "matrix vec mul testing" {
     const matrix = Mat4(f32).identity();
     const vector = vec.Vec4(f32).build(10, 10, 99, 123);
-
     const prod = matrix.mulVec(vector);
-
     std.debug.print("product: {any}\nmatrix: {any}\nvec: {any}\n", .{ prod, matrix, vector });
     try std.testing.expect(std.meta.eql(vector, prod));
 }
@@ -214,9 +279,12 @@ test "matrix vec mul testing" {
 test "matrix matrix mul testing" {
     const matrix1 = Mat4(f32).identity();
     const matrix2 = Mat4(f32).identity();
-
     const prod = matrix1.mulMat(&matrix2);
-
     std.debug.print("product: {any}\n", .{prod});
     try std.testing.expect(std.meta.eql(matrix1, prod));
+
+    const matrixn1 = MatN(f32, 100).identity();
+    const matrixn2 = MatN(f32, 100).identity();
+    const prod1 = matrixn1.mulMat(&matrixn2);
+    try std.testing.expect(std.meta.eql(matrixn1, prod1));
 }
