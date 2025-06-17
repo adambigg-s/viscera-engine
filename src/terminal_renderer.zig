@@ -22,8 +22,8 @@ pub const FrustumPlane = struct {
     };
 };
 
-// https://en.wikipedia.org/wiki/Braille_Patterns
 pub const Braille = struct {
+    // https://en.wikipedia.org/wiki/Braille_Patterns
     pub const width = 2;
     pub const height = 4;
     pub const start = 0x2800;
@@ -44,10 +44,6 @@ pub const TerminalInfo = struct {
     render_freq: usize,
 
     const Self = @This();
-
-    pub fn shouldRender(self: *Self, tick: usize) bool {
-        return 0 == tick % self.render_freq;
-    }
 };
 
 pub fn Buffer(comptime T: type) type {
@@ -112,7 +108,7 @@ pub fn Buffer(comptime T: type) type {
 }
 
 pub const Renderer = struct {
-    main: Buffer(u21),
+    text: Buffer(u21),
     braille: Buffer(u32),
     depth: Buffer(f32),
     width: usize,
@@ -144,7 +140,7 @@ pub const Renderer = struct {
         terminal_info.render_freq = 5;
 
         return Renderer{
-            .main = try Buffer(u21).init(width, height, allocator, ' '),
+            .text = try Buffer(u21).init(width, height, allocator, ' '),
             .braille = try Buffer(u32).init(braille_width, braille_height, allocator, Braille.start),
             .depth = try Buffer(f32).init(width, height, allocator, Self.infinity),
             .width = width,
@@ -154,13 +150,13 @@ pub const Renderer = struct {
     }
 
     pub fn deinit(self: *Self) void {
-        self.main.deinit();
+        self.text.deinit();
         self.braille.deinit();
         self.depth.deinit();
     }
 
     pub fn clear(self: *Self) void {
-        self.main.clear();
+        self.text.clear();
         self.braille.clear();
         self.depth.clear();
     }
@@ -179,7 +175,7 @@ pub const Renderer = struct {
         try writer.writeAll("\x1b[?25l");
         for (0..self.height) |y| {
             for (0..self.width) |x| {
-                const data = self.main.get(x, y).?;
+                const data = self.text.get(x, y).?;
                 var char_buffer: [3]u8 = undefined;
                 // this is a really weird conversion but it shouldn't ever panic
                 // 3 * 8 > 21 so it should always be a big enough buffer
@@ -202,7 +198,7 @@ pub const Renderer = struct {
         var runner: usize = 0;
         var span: usize = 0;
         for (text) |char| {
-            while (!self.main.set(start.x + runner, start.y + span, @intCast(char))) {
+            while (!self.text.set(start.x + runner, start.y + span, @intCast(char))) {
                 runner = 0;
                 span += 1;
 
@@ -230,7 +226,7 @@ pub const Renderer = struct {
             @bitCast(screenspace.x),
             @bitCast(screenspace.y),
         };
-        _ = self.main.set(unsigned_x, unsigned_y, fill);
+        _ = self.text.set(unsigned_x, unsigned_y, fill);
     }
 
     fn renderLineClipped(self: *Self, viewmodel: *sim.Player, a: Vec3, b: Vec3, fill: u8) void {
@@ -261,7 +257,7 @@ pub const Renderer = struct {
         var tracer = LineTracer.build(screenspace_a.x, screenspace_a.y, screenspace_b.x, screenspace_b.y);
         while (tracer.next()) |point| {
             const unsigned_x: usize, const unsigned_y: usize = .{ @bitCast(point.x), @bitCast(point.y) };
-            _ = self.main.set(unsigned_x, unsigned_y, fill);
+            _ = self.text.set(unsigned_x, unsigned_y, fill);
         }
     }
 

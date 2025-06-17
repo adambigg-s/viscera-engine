@@ -6,15 +6,14 @@ const ren = lib.ren;
 
 pub const Simulation = struct {
     player: Player,
-    tick: usize,
 
     const Self = @This();
 
     pub fn init(allocator: std.mem.Allocator) !Self {
         _ = .{allocator};
+
         const simulation = Simulation{
             .player = Player.new(),
-            .tick = 0,
         };
 
         return simulation;
@@ -22,7 +21,6 @@ pub const Simulation = struct {
 
     pub fn update(self: *Self, inputs: *Inputs) !void {
         self.player.update(inputs);
-        self.tick += 1;
     }
 };
 
@@ -138,21 +136,17 @@ pub const Inputs = struct {
     const Self = @This();
 
     pub fn init() !Self {
-        // this prevents bugs where the first call is ub
-        _ = win.getKeyState(win.vk_w);
-        _ = win.getKeyState(win.vk_a);
-        _ = win.getKeyState(win.vk_s);
-        _ = win.getKeyState(win.vk_d);
-        _ = win.getKeyState(win.vk_r);
-        _ = win.getKeyState(win.vk_f);
-        _ = win.getKeyState(win.vk_escape);
-        _ = win.getKeyState(win.vk_mouse_lbutton);
-        _ = try win.setCursorPos(1920, 1080);
-
-        return Inputs{
+        var output = Inputs{
             .mouse_delta = vec.Vec2(i32).zeros(),
             .mouse_pos = vec.Vec2(i32).build(1920, 1080),
         };
+        // this prevents bugs where the first call is ub
+        // basically just calls the async key funcs a bunch of times to ensure update
+        for (0..100) |_| {
+            output.updateKeys();
+        }
+
+        return output;
     }
 
     pub fn updateKeys(self: *Self) void {

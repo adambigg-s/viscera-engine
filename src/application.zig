@@ -18,11 +18,9 @@ pub const Application = struct {
 
     pub fn run(self: *Self) !void {
         while (!self.inputs.key_escape) {
-            if (self.renderer.terminal_info.shouldRender(self.simulation.tick)) {
-                self.renderer.clear();
-                self.renderer.renderSimulation(&self.simulation);
-                try self.renderer.commitPass();
-            }
+            self.renderer.clear();
+            self.renderer.renderSimulation(&self.simulation);
+            try self.renderer.commitPass();
 
             try self.inputs.updateDeltas();
             self.inputs.updateKeys();

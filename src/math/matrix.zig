@@ -63,6 +63,14 @@ pub fn Mat2(comptime T: type) type {
 
             return Self{ .inner = inner };
         }
+
+        pub fn transpose(self: *const Self) Self {
+            var m = self.inner;
+            const a, const b = .{ m[0][1], m[1][0] };
+            m[0][1], m[1][0] = .{ b, a };
+
+            return Self{ .inner = m };
+        }
     };
 }
 
@@ -127,6 +135,16 @@ pub fn Mat3(comptime T: type) type {
 
             return Self{ .inner = inner };
         }
+
+        pub fn transpose(self: *const Self) Self {
+            var m = self.inner;
+            const a, const b, const c = .{ m[0][1], m[0][2], m[1][2] };
+            const d, const e, const f = .{ m[1][0], m[2][0], m[2][1] };
+            m[0][1], m[0][2], m[1][2] = .{ d, e, f };
+            m[1][0], m[2][0], m[2][1] = .{ a, b, c };
+
+            return Self{ .inner = m };
+        }
     };
 }
 
@@ -187,6 +205,17 @@ pub fn Mat4(comptime T: type) type {
                     for (0..Self.dim) |k| {
                         inner[i][j] += a[i][k] * b[k][j];
                     }
+                }
+            }
+
+            return Self{ .inner = inner };
+        }
+
+        pub fn transpose(self: *const Self) Self {
+            var inner: [Self.dim][Self.dim]T = undefined;
+            for (0..Self.dim) |i| {
+                for (0..Self.dim) |j| {
+                    inner[i][j] = self.inner[j][i];
                 }
             }
 
@@ -260,6 +289,17 @@ pub fn MatN(comptime T: type, comptime N: usize) type {
                     for (0..Self.dim) |k| {
                         inner[i][j] += a[i][k] * b[k][j];
                     }
+                }
+            }
+
+            return Self{ .inner = inner };
+        }
+
+        pub fn transpose(self: *const Self) Self {
+            var inner: [Self.dim][Self.dim]T = undefined;
+            for (0..Self.dim) |i| {
+                for (0..Self.dim) |j| {
+                    inner[i][j] = self.inner[j][i];
                 }
             }
 

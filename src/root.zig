@@ -38,15 +38,6 @@ pub fn nearestLowerOdd(comptime T: type, value: T) T {
     return @divFloor(value, 2) * 2 - 1;
 }
 
-test "module tree test distribtuion entry point" {
-    _ = @import("application.zig");
-    _ = @import("terminal_renderer.zig");
-    _ = @import("gamestate.zig");
-    _ = @import("winapi.zig");
-    _ = @import("math/vector.zig");
-    _ = @import("math/matrix.zig");
-}
-
 test "nearest odd testing" {
     const xp: i333 = 4;
     const x = nearestLowerOdd(i333, xp);
@@ -56,3 +47,13 @@ test "nearest odd testing" {
     const y = nearestLowerOdd(usize, yp);
     try std.testing.expect(y == 19);
 }
+
+test "module tree test distribtuion entry point" {
+    _ = @import("application.zig");
+    _ = @import("terminal_renderer.zig");
+    _ = @import("gamestate.zig");
+    _ = @import("winapi.zig");
+    _ = @import("math/vector.zig");
+    _ = @import("math/matrix.zig");
+}
+
