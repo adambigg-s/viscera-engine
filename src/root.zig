@@ -1,9 +1,10 @@
 pub const std = @import("std");
 
 pub const app = @import("application.zig");
-pub const ren = @import("terminal_renderer.zig");
 pub const sim = @import("gamestate.zig");
 pub const win = @import("winapi.zig");
+pub const ren = @import("renderer/terminal_renderer.zig");
+pub const uti = @import("renderer//render_utils.zig");
 pub const vec = @import("math/vector.zig");
 pub const mat = @import("math/matrix.zig");
 
@@ -50,10 +51,9 @@ test "nearest odd testing" {
 
 test "module tree test distribtuion entry point" {
     _ = @import("application.zig");
-    _ = @import("terminal_renderer.zig");
     _ = @import("gamestate.zig");
     _ = @import("winapi.zig");
+    _ = @import("renderer/terminal_renderer.zig");
     _ = @import("math/vector.zig");
     _ = @import("math/matrix.zig");
 }
-
