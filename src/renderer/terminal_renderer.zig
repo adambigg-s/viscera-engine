@@ -110,16 +110,17 @@ pub const Renderer = struct {
 
                 const inv = 1 / @as(f32, @floatFromInt(triangleEdge(a_signed, b_signed, c_signed)));
                 const point = vec.Vec2(i32).build(@intCast(x), @intCast(y));
-                const w0, const w1, const w2 = .{
+
+                const weight0, const weight1, const weight2 = .{
                     @as(f32, @floatFromInt(triangleEdge(a_signed, b_signed, point))) * inv,
                     @as(f32, @floatFromInt(triangleEdge(b_signed, c_signed, point))) * inv,
                     @as(f32, @floatFromInt(triangleEdge(c_signed, a_signed, point))) * inv,
                 };
 
-                if (w0 >= 0 and w1 >= 0 and w2 >= 0) {
-                    const red = @as(u8, @intFromFloat(w0 * 255));
-                    const green = @as(u8, @intFromFloat(w1 * 255));
-                    const blue = @as(u8, @intFromFloat(w2 * 255));
+                if (weight0 >= 0 and weight1 >= 0 and weight2 >= 0) {
+                    const red = @as(u8, @intFromFloat(weight0 * 255));
+                    const green = @as(u8, @intFromFloat(weight1 * 255));
+                    const blue = @as(u8, @intFromFloat(weight2 * 255));
 
                     _ = self.main.set(x, y, Color.build(red, green, blue));
                 }
@@ -135,8 +136,10 @@ pub const Renderer = struct {
             -ndc.y * half_height + half_height,
         };
 
-        const x: usize = @intFromFloat(floatx);
-        const y: usize = @intFromFloat(floaty);
+        const x: usize, const y: usize = .{
+            @intFromFloat(floatx),
+            @intFromFloat(floaty),
+        };
 
         return vec.Vec2(usize).build(x, y);
     }
