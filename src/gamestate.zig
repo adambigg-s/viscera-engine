@@ -3,6 +3,7 @@ const std = lib.std;
 const vec = lib.vec;
 const win = lib.win;
 const ren = lib.ren;
+const mat = lib.mat;
 
 pub const Simulation = struct {
     player: Player,
@@ -41,6 +42,7 @@ pub const Player = struct {
     far_plane: f32,
 
     const Self = @This();
+    const Mat4 = mat.Mat4(f32);
 
     const math = lib.std.math;
 
@@ -67,6 +69,36 @@ pub const Player = struct {
         self.updateTranslation(inputs);
         self.updateRotation(inputs);
         self.updateVectors();
+    }
+
+    pub fn getViewMatrix(self: *const Self) Mat4 {
+        var base = Mat4.identity();
+        base[0][3], base[1][3], base[2][3] = .{
+            self.pos.x,
+            self.pos.y,
+            self.pos.z,
+        };
+        base[0][0], base[0][1], base[0][2] = .{
+            self.front.x,
+            self.front.y,
+            self.front.z,
+        };
+        base[1][0], base[1][1], base[1][2] = .{
+            self.up.x,
+            self.up.y,
+            self.up.z,
+        };
+        base[2][0], base[2][1], base[2][2] = .{
+            self.right.x,
+            self.right.y,
+            self.right.z,
+        };
+    }
+
+    pub fn getProjectionMatrix(self: *const Self) Mat4 {
+        const base = Mat4.identity();
+
+        _ = .{ self, base };
     }
 
     fn updateTranslation(self: *Self, inputs: *Inputs) void {
