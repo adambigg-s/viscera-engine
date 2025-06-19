@@ -15,6 +15,7 @@ pub const Renderer = struct {
     const Self = @This();
     const Alloc = std.mem.Allocator;
     const Vec3 = vec.Vec3(f32);
+    const Vec4 = vec.Vec4(f32);
     const Color = vec.Vec3(u8);
 
     const infinity = 1e9;
@@ -63,6 +64,7 @@ pub const Renderer = struct {
             Vec3.build(0.5, -0.5, 0.0),
             Vec3.build(0.0, 0.5, 0.0),
         };
+        _ = self.worldToViewSpace(&simulation.player, vertices[0]);
         self.renderTriangle(&vertices);
     }
 
@@ -128,6 +130,15 @@ pub const Renderer = struct {
         }
     }
 
+    fn worldToViewSpace(self: *Self, cam: *sim.Player, point: Vec3) Vec4 {
+        _ = .{self};
+
+        const matrix = cam.getViewMatrix();
+        const point4 = Vec4.fromVec3Homogenous(point);
+
+        return matrix.mulVec(point4);
+    }
+
     fn NDCToScreenSpace(self: *Self, ndc: Vec3) vec.Vec2(usize) {
         const half_width, const half_height = self.halfDimensionsFloat();
 
@@ -164,3 +175,12 @@ pub fn triangleBounds(a: vec.Vec2(usize), b: vec.Vec2(usize), c: vec.Vec2(usize)
 pub fn triangleEdge(a: vec.Vec2(i32), b: vec.Vec2(i32), c: vec.Vec2(i32)) i32 {
     return (c.x - a.x) * (b.y - a.y) - (c.y - a.y) * (b.x - a.x);
 }
+
+const Triangle = struct {
+    a: Vec3,
+    b: Vec3,
+    c: Vec3,
+
+    const Self = @This();
+    const Vec3 = vec.Vec3(f32);
+};

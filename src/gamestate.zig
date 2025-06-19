@@ -72,27 +72,29 @@ pub const Player = struct {
     }
 
     pub fn getViewMatrix(self: *const Self) Mat4 {
-        var base = Mat4.identity();
-        base[0][3], base[1][3], base[2][3] = .{
+        var matrix = Mat4.identity();
+        matrix.inner[0][3], matrix.inner[1][3], matrix.inner[2][3] = .{
             self.pos.x,
             self.pos.y,
             self.pos.z,
         };
-        base[0][0], base[0][1], base[0][2] = .{
+        matrix.inner[0][0], matrix.inner[0][1], matrix.inner[0][2] = .{
             self.front.x,
             self.front.y,
             self.front.z,
         };
-        base[1][0], base[1][1], base[1][2] = .{
+        matrix.inner[1][0], matrix.inner[1][1], matrix.inner[1][2] = .{
             self.up.x,
             self.up.y,
             self.up.z,
         };
-        base[2][0], base[2][1], base[2][2] = .{
+        matrix.inner[2][0], matrix.inner[2][1], matrix.inner[2][2] = .{
             self.right.x,
             self.right.y,
             self.right.z,
         };
+
+        return matrix;
     }
 
     pub fn getProjectionMatrix(self: *const Self) Mat4 {

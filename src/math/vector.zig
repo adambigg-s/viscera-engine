@@ -210,6 +210,10 @@ pub fn Vec4(comptime T: type) type {
             return Self.build(vec.x, vec.y, vec.z, w);
         }
 
+        pub fn fromVec3Homogenous(vec: Vec3(T)) Self {
+            return Self.build(vec.x, vec.y, vec.z, 1);
+        }
+
         pub fn neg(self: Self) Self {
             return Self.build(-self.x, -self.y, -self.y, -self.w);
         }
