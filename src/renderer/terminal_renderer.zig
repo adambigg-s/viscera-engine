@@ -60,9 +60,9 @@ pub const Renderer = struct {
         _ = .{ self, simulation };
 
         const vertices = [_]Vec3{
-            Vec3.build(-0.5, -0.5, 0.0),
-            Vec3.build(0.5, -0.5, 0.0),
-            Vec3.build(0.0, 0.5, 0.0),
+            Vec3.build(-0.35, -0.55, 0.0),
+            Vec3.build(0.27, -0.42, 0.0),
+            Vec3.build(-0.05, 0.55, 0.0),
         };
         _ = self.worldToViewSpace(&simulation.player, vertices[0]);
         self.renderTriangle(&vertices);
@@ -119,10 +119,14 @@ pub const Renderer = struct {
                     @as(f32, @floatFromInt(triangleEdge(c_signed, a_signed, point))) * inv,
                 };
 
+                const hue = 0.4;
                 if (weight0 >= 0 and weight1 >= 0 and weight2 >= 0) {
-                    const red = @as(u8, @intFromFloat(weight0 * 255));
-                    const green = @as(u8, @intFromFloat(weight1 * 255));
-                    const blue = @as(u8, @intFromFloat(weight2 * 255));
+                    var red = @as(u8, @intFromFloat(weight0 * 255));
+                    red += @as(u8, @intFromFloat(weight1 * 255 * hue));
+                    var green = @as(u8, @intFromFloat(weight1 * 255));
+                    green += @as(u8, @intFromFloat(weight2 * 255 * hue));
+                    var blue = @as(u8, @intFromFloat(weight2 * 255));
+                    blue += @as(u8, @intFromFloat(weight0 * 255 * hue));
 
                     _ = self.main.set(x, y, Color.build(red, green, blue));
                 }
