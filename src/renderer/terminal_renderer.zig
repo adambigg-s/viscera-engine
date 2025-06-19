@@ -29,7 +29,6 @@ pub const Renderer = struct {
             lib.nearestLowerOdd(usize, width),
             lib.nearestLowerOdd(usize, height),
         };
-        const braille_width, const braille_height = .{ width * uti.Braille.width, height * uti.Braille.height };
 
         // need to query this later for proper scale rendering
         var terminal_info: uti.TerminalInfo = undefined;
@@ -38,7 +37,7 @@ pub const Renderer = struct {
         terminal_info.render_freq = 5;
 
         return Renderer{
-            .main = try uti.Buffer(Color).init(braille_width, braille_height, allocator, Color.build(20, 20, 80)),
+            .main = try uti.Buffer(Color).init(width, height, allocator, Color.build(35, 35, 55)),
             .depth = try uti.Buffer(f32).init(width, height, allocator, Self.infinity),
             .width = width,
             .height = height,
@@ -58,6 +57,13 @@ pub const Renderer = struct {
 
     pub fn renderSimulation(self: *Self, simulation: *sim.Simulation) void {
         _ = .{ self, simulation };
+
+        const vertices = [_]Vec3{
+            Vec3.build(-0.5, -0.5, 0.0),
+            Vec3.build(0.5, -0.5, 0.0),
+            Vec3.build(0.0, 0.5, 0.0),
+        };
+        self.renderTriangle(&vertices);
     }
 
     pub fn commitPass(self: *Self) !void {
@@ -70,13 +76,8 @@ pub const Renderer = struct {
         try writer.writeAll("\x1b[?25l");
         for (0..self.height) |y| {
             for (0..self.width) |x| {
-                _ = .{ x, y };
-                // const data = self.main.get(x, y).?;
-                // var char_buffer: [3]u8 = undefined;
-                // // this is a really weird conversion but it shouldn't ever panic
-                // // 3 * 8 > 21 so it should always be a big enough buffer
-                // const len = try std.unicode.utf8Encode(@intCast(data), &char_buffer);
-                // try writer.writeAll(char_buffer[0..len]);
+                const color = self.main.get(x, y).?;
+                try writer.print("\x1b[48;2;{};{};{}m ", .{ color.x, color.y, color.z });
             }
             try writer.writeByte('\n');
         }
@@ -86,7 +87,77 @@ pub const Renderer = struct {
         try buffer_writer.flush();
     }
 
+    fn renderTriangle(self: *Self, triangle: *const [3]Vec3) void {
+        const screen_a, const screen_b, const screen_c = .{
+            self.NDCToScreenSpace(triangle[0]),
+            self.NDCToScreenSpace(triangle[1]),
+            self.NDCToScreenSpace(triangle[2]),
+        };
+
+        const a_signed, const b_signed, const c_signed = .{
+            vec.Vec2(i32).build(@intCast(screen_a.x), @intCast(screen_a.y)),
+            vec.Vec2(i32).build(@intCast(screen_b.x), @intCast(screen_b.y)),
+            vec.Vec2(i32).build(@intCast(screen_c.x), @intCast(screen_c.y)),
+        };
+
+        const tri_min, const tri_max = triangleBounds(screen_a, screen_b, screen_c);
+
+        for (tri_min.x..tri_max.x) |x| {
+            for (tri_min.y..tri_max.y) |y| {
+                if (x >= self.width or y >= self.height) {
+                    continue;
+                }
+
+                const inv = 1 / @as(f32, @floatFromInt(triangleEdge(a_signed, b_signed, c_signed)));
+                const point = vec.Vec2(i32).build(@intCast(x), @intCast(y));
+                const w0, const w1, const w2 = .{
+                    @as(f32, @floatFromInt(triangleEdge(a_signed, b_signed, point))) * inv,
+                    @as(f32, @floatFromInt(triangleEdge(b_signed, c_signed, point))) * inv,
+                    @as(f32, @floatFromInt(triangleEdge(c_signed, a_signed, point))) * inv,
+                };
+
+                if (w0 >= 0 and w1 >= 0 and w2 >= 0) {
+                    const red = @as(u8, @intFromFloat(w0 * 255));
+                    const green = @as(u8, @intFromFloat(w1 * 255));
+                    const blue = @as(u8, @intFromFloat(w2 * 255));
+
+                    _ = self.main.set(x, y, Color.build(red, green, blue));
+                }
+            }
+        }
+    }
+
+    fn NDCToScreenSpace(self: *Self, ndc: Vec3) vec.Vec2(usize) {
+        const half_width, const half_height = self.halfDimensionsFloat();
+
+        const floatx, const floaty = .{
+            ndc.x * half_width + half_width,
+            -ndc.y * half_height + half_height,
+        };
+
+        const x: usize = @intFromFloat(floatx);
+        const y: usize = @intFromFloat(floaty);
+
+        return vec.Vec2(usize).build(x, y);
+    }
+
     fn halfDimensionsFloat(self: *Self) struct { f32, f32 } {
         return .{ @as(f32, @floatFromInt(self.width)) / 2, @as(f32, @floatFromInt(self.height)) / 2 };
     }
 };
+
+pub fn triangleBounds(a: vec.Vec2(usize), b: vec.Vec2(usize), c: vec.Vec2(usize)) struct {
+    vec.Vec2(usize),
+    vec.Vec2(usize),
+} {
+    const max_x = @max(a.x, b.x, c.x);
+    const min_x = @min(a.x, b.x, c.x);
+    const max_y = @max(a.y, b.y, c.y);
+    const min_y = @min(a.y, b.y, c.y);
+
+    return .{ vec.Vec2(usize).build(min_x, min_y), vec.Vec2(usize).build(max_x, max_y) };
+}
+
+pub fn triangleEdge(a: vec.Vec2(i32), b: vec.Vec2(i32), c: vec.Vec2(i32)) i32 {
+    return (c.x - a.x) * (b.y - a.y) - (c.y - a.y) * (b.x - a.x);
+}
