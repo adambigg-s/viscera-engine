@@ -47,11 +47,11 @@ pub const Player = struct {
     const math = lib.std.math;
 
     pub fn new() Self {
-        return Player{
+        var output = Player{
             .pos = vec.Vec3(f32).zeros(),
-            .front = vec.Vec3(f32).zeros(),
-            .right = vec.Vec3(f32).zeros(),
-            .up = vec.Vec3(f32).zeros(),
+            .front = vec.Vec3(f32).build(0, 0, -1),
+            .right = vec.Vec3(f32).build(1, 0, 0),
+            .up = vec.Vec3(f32).build(0, 1, 0),
             .world_up = vec.Vec3(f32).build(0, 1, 0),
             .pitch = 0,
             .yaw = 0,
@@ -63,44 +63,54 @@ pub const Player = struct {
             .near_plane = 0.01,
             .far_plane = 5000,
         };
-    }
+        output.updateVectors();
 
-    pub fn update(self: *Self, inputs: *Inputs) void {
-        self.updateTranslation(inputs);
-        self.updateRotation(inputs);
-        self.updateVectors();
+        return output;
     }
 
     pub fn getViewMatrix(self: *const Self) Mat4 {
         var matrix = Mat4.identity();
-        matrix.inner[0][3], matrix.inner[1][3], matrix.inner[2][3] = .{
-            self.pos.x,
-            self.pos.y,
-            self.pos.z,
-        };
-        matrix.inner[0][0], matrix.inner[0][1], matrix.inner[0][2] = .{
-            self.front.x,
-            self.front.y,
-            self.front.z,
-        };
-        matrix.inner[1][0], matrix.inner[1][1], matrix.inner[1][2] = .{
-            self.up.x,
-            self.up.y,
-            self.up.z,
-        };
-        matrix.inner[2][0], matrix.inner[2][1], matrix.inner[2][2] = .{
+        var m = &matrix.inner;
+
+        m[0][0], m[0][1], m[0][2], m[0][3] = .{
             self.right.x,
             self.right.y,
             self.right.z,
+            -self.right.innerProduct(self.pos),
+        };
+        m[1][0], m[1][1], m[1][2], m[1][3] = .{
+            self.up.x,
+            self.up.y,
+            self.up.z,
+            -self.up.innerProduct(self.pos),
+        };
+        m[2][0], m[2][1], m[2][2], m[2][3] = .{
+            -self.front.x,
+            -self.front.y,
+            -self.front.z,
+            self.front.innerProduct(self.pos),
         };
 
         return matrix;
     }
 
-    pub fn getProjectionMatrix(self: *const Self) Mat4 {
-        const base = Mat4.identity();
+    pub fn getProjectionMatrix(self: *const Self, aspect_ratio: f32) Mat4 {
+        var matrix = Mat4.identity();
+        var m = &matrix.inner;
 
-        _ = .{ self, base };
+        const inv_half_fov, const inv_near_far = .{
+            1 / @tan(self.vertical_fov / 2),
+            1 / (self.near_plane - self.far_plane),
+        };
+
+        m[0][0] = inv_half_fov / aspect_ratio;
+        m[1][1] = inv_half_fov;
+        m[2][2] = (self.far_plane + self.near_plane) * inv_near_far;
+        m[2][3] = (2 * self.far_plane * self.near_plane) * inv_near_far;
+        m[3][2] = -1;
+        m[3][3] = 0;
+
+        return matrix;
     }
 
     fn updateTranslation(self: *Self, inputs: *Inputs) void {
@@ -122,6 +132,12 @@ pub const Player = struct {
         if (inputs.key_f) {
             self.pos = self.pos.sub(self.up.mul(self.move_speed));
         }
+    }
+
+    pub fn update(self: *Self, inputs: *Inputs) void {
+        self.updateTranslation(inputs);
+        self.updateRotation(inputs);
+        self.updateVectors();
     }
 
     fn updateRotation(self: *Self, inputs: *Inputs) void {

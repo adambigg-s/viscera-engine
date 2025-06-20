@@ -57,15 +57,44 @@ pub const Renderer = struct {
     }
 
     pub fn renderSimulation(self: *Self, simulation: *sim.Simulation) void {
-        _ = .{ self, simulation };
+        self.renderTrianglePoints(&simulation.player);
+    }
 
-        const vertices = [_]Vec3{
-            Vec3.build(-0.35, -0.55, 0.0),
-            Vec3.build(0.27, -0.42, 0.0),
-            Vec3.build(-0.05, 0.55, 0.0),
+    fn renderTrianglePoints(self: *Self, cam: *sim.Player) void {
+        const ar = self.terminal_info.screen_aspect;
+
+        const proj = cam.getProjectionMatrix(ar);
+        const view = cam.getViewMatrix();
+
+        const tri = [_]Vec3{
+            Vec3.build(-0.5, -0.5, -2.0),
+            Vec3.build(0.5, -0.5, -2.0),
+            Vec3.build(0.0, 0.5, -2.0),
         };
-        _ = self.worldToViewSpace(&simulation.player, vertices[0]);
-        self.renderTriangle(&vertices);
+
+        for (tri) |point| {
+            const world = Vec4.fromVec3Homogenous(point);
+            const view_pos = view.mulVec(world);
+            const clip_pos = proj.mulVec(view_pos);
+
+            if (clip_pos.w < Self.epsilon) {
+                continue;
+            }
+
+            const ndc = Vec3.build(clip_pos.x, clip_pos.y, clip_pos.z).div(clip_pos.w);
+
+            if (!self.withinView(ndc)) {
+                continue;
+            }
+
+            const screen = self.NDCToScreenSpace(ndc);
+            _ = self.main.set(screen.x, screen.y, Color.build(255, 255, 255));
+        }
+    }
+
+    fn withinView(self: *Self, point: Vec3) bool {
+        _ = .{self};
+        return point.x < 1 and point.x > -1 and point.y > -1 and point.y < 1;
     }
 
     pub fn commitPass(self: *Self) !void {
@@ -89,60 +118,6 @@ pub const Renderer = struct {
         try buffer_writer.flush();
     }
 
-    fn renderTriangle(self: *Self, triangle: *const [3]Vec3) void {
-        const screen_a, const screen_b, const screen_c = .{
-            self.NDCToScreenSpace(triangle[0]),
-            self.NDCToScreenSpace(triangle[1]),
-            self.NDCToScreenSpace(triangle[2]),
-        };
-
-        const a_signed, const b_signed, const c_signed = .{
-            vec.Vec2(i32).build(@intCast(screen_a.x), @intCast(screen_a.y)),
-            vec.Vec2(i32).build(@intCast(screen_b.x), @intCast(screen_b.y)),
-            vec.Vec2(i32).build(@intCast(screen_c.x), @intCast(screen_c.y)),
-        };
-
-        const tri_min, const tri_max = triangleBounds(screen_a, screen_b, screen_c);
-
-        for (tri_min.x..tri_max.x) |x| {
-            for (tri_min.y..tri_max.y) |y| {
-                if (x >= self.width or y >= self.height) {
-                    continue;
-                }
-
-                const inv = 1 / @as(f32, @floatFromInt(triangleEdge(a_signed, b_signed, c_signed)));
-                const point = vec.Vec2(i32).build(@intCast(x), @intCast(y));
-
-                const weight0, const weight1, const weight2 = .{
-                    @as(f32, @floatFromInt(triangleEdge(a_signed, b_signed, point))) * inv,
-                    @as(f32, @floatFromInt(triangleEdge(b_signed, c_signed, point))) * inv,
-                    @as(f32, @floatFromInt(triangleEdge(c_signed, a_signed, point))) * inv,
-                };
-
-                const hue = 0.4;
-                if (weight0 >= 0 and weight1 >= 0 and weight2 >= 0) {
-                    var red = @as(u8, @intFromFloat(weight0 * 255));
-                    red += @as(u8, @intFromFloat(weight1 * 255 * hue));
-                    var green = @as(u8, @intFromFloat(weight1 * 255));
-                    green += @as(u8, @intFromFloat(weight2 * 255 * hue));
-                    var blue = @as(u8, @intFromFloat(weight2 * 255));
-                    blue += @as(u8, @intFromFloat(weight0 * 255 * hue));
-
-                    _ = self.main.set(x, y, Color.build(red, green, blue));
-                }
-            }
-        }
-    }
-
-    fn worldToViewSpace(self: *Self, cam: *sim.Player, point: Vec3) Vec4 {
-        _ = .{self};
-
-        const matrix = cam.getViewMatrix();
-        const point4 = Vec4.fromVec3Homogenous(point);
-
-        return matrix.mulVec(point4);
-    }
-
     fn NDCToScreenSpace(self: *Self, ndc: Vec3) vec.Vec2(usize) {
         const half_width, const half_height = self.halfDimensionsFloat();
 
@@ -162,29 +137,4 @@ pub const Renderer = struct {
     fn halfDimensionsFloat(self: *Self) struct { f32, f32 } {
         return .{ @as(f32, @floatFromInt(self.width)) / 2, @as(f32, @floatFromInt(self.height)) / 2 };
     }
-};
-
-pub fn triangleBounds(a: vec.Vec2(usize), b: vec.Vec2(usize), c: vec.Vec2(usize)) struct {
-    vec.Vec2(usize),
-    vec.Vec2(usize),
-} {
-    const max_x = @max(a.x, b.x, c.x);
-    const min_x = @min(a.x, b.x, c.x);
-    const max_y = @max(a.y, b.y, c.y);
-    const min_y = @min(a.y, b.y, c.y);
-
-    return .{ vec.Vec2(usize).build(min_x, min_y), vec.Vec2(usize).build(max_x, max_y) };
-}
-
-pub fn triangleEdge(a: vec.Vec2(i32), b: vec.Vec2(i32), c: vec.Vec2(i32)) i32 {
-    return (c.x - a.x) * (b.y - a.y) - (c.y - a.y) * (b.x - a.x);
-}
-
-const Triangle = struct {
-    a: Vec3,
-    b: Vec3,
-    c: Vec3,
-
-    const Self = @This();
-    const Vec3 = vec.Vec3(f32);
 };
