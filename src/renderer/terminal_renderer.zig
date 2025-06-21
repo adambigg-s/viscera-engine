@@ -236,10 +236,10 @@ pub const Renderer = struct {
                     continue;
                 }
 
-                const color = Mat3.buildColumns(
-                    &[_]f32{ v0.color.x, v1.color.x, v2.color.x },
-                    &[_]f32{ v0.color.y, v1.color.y, v2.color.y },
-                    &[_]f32{ v0.color.z, v1.color.z, v2.color.z },
+                const color = Mat3.buildColumnsFromVec(
+                    v0.color,
+                    v1.color,
+                    v2.color,
                 );
                 const pixel_color = color.mulVec(barycentric_weights);
 

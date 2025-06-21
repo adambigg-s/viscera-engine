@@ -37,6 +37,46 @@ pub fn Mat2(comptime T: type) type {
             return Self{ .inner = inner };
         }
 
+        pub fn buildRows(v0: []const T, v1: []const T) Self {
+            var inner = Self.zeros().inner;
+
+            for (0..Self.dim) |j| {
+                inner[0][j] = v0[j];
+                inner[1][j] = v1[j];
+            }
+
+            return Self{ .inner = inner };
+        }
+
+        pub fn buildColumns(c0: []const T, c1: []const T) Self {
+            var inner = Self.zeros().inner;
+
+            for (0..Self.dim) |i| {
+                inner[i][0] = c0[i];
+                inner[i][1] = c1[i];
+            }
+
+            return Self{ .inner = inner };
+        }
+
+        pub fn buildRowsFromVec(v0: vec.Vec2(T), v1: vec.Vec2(T)) Self {
+            var inner = Self.zeros().inner;
+
+            inner[0][0], inner[0][1] = .{ v0.x, v0.y };
+            inner[1][0], inner[1][1] = .{ v1.x, v1.y };
+
+            return Self{ .inner = inner };
+        }
+
+        pub fn buildColumnsFromVec(c0: vec.Vec2(T), c1: vec.Vec2(T)) Self {
+            var inner = Self.zeros().inner;
+
+            inner[0][0], inner[0][1] = .{ c0.x, c1.x };
+            inner[1][0], inner[1][1] = .{ c0.y, c1.y };
+
+            return Self{ .inner = inner };
+        }
+
         pub fn mulVec(self: *const Self, vector: vec.Vec2(T)) vec.Vec2(T) {
             const m = self.inner;
             const v = vector;
@@ -132,6 +172,26 @@ pub fn Mat3(comptime T: type) type {
             return Self{ .inner = inner };
         }
 
+        pub fn buildRowsFromVec(v0: vec.Vec3(T), v1: vec.Vec3(T), v2: vec.Vec3(T)) Self {
+            var inner = Self.zeros().inner;
+
+            inner[0][0], inner[0][1], inner[0][2] = .{ v0.x, v0.y, v0.z };
+            inner[1][0], inner[1][1], inner[1][2] = .{ v1.x, v1.y, v1.z };
+            inner[2][0], inner[2][1], inner[2][2] = .{ v2.x, v2.y, v2.z };
+
+            return Self{ .inner = inner };
+        }
+
+        pub fn buildColumnsFromVec(c0: vec.Vec3(T), c1: vec.Vec3(T), c2: vec.Vec3(T)) Self {
+            var inner = Self.zeros().inner;
+
+            inner[0][0], inner[0][1], inner[0][2] = .{ c0.x, c1.x, c2.x };
+            inner[1][0], inner[1][1], inner[1][2] = .{ c0.y, c1.y, c2.y };
+            inner[2][0], inner[2][1], inner[2][2] = .{ c0.z, c1.z, c2.z };
+
+            return Self{ .inner = inner };
+        }
+
         pub fn mulVec(self: *const Self, vector: vec.Vec3(T)) vec.Vec3(T) {
             const m = self.inner;
             const v = vector;
@@ -202,6 +262,54 @@ pub fn Mat4(comptime T: type) type {
                     }
                 }
             }
+
+            return Self{ .inner = inner };
+        }
+
+        pub fn buildRows(v0: []const T, v1: []const T, v2: []const T, v3: []const T) Self {
+            var inner = Self.zeros().inner;
+
+            for (0..Self.dim) |j| {
+                inner[0][j] = v0[j];
+                inner[1][j] = v1[j];
+                inner[2][j] = v2[j];
+                inner[3][j] = v3[j];
+            }
+
+            return Self{ .inner = inner };
+        }
+
+        pub fn buildColumns(c0: []const T, c1: []const T, c2: []const T, c3: []const T) Self {
+            var inner = Self.zeros().inner;
+
+            for (0..Self.dim) |i| {
+                inner[i][0] = c0[i];
+                inner[i][1] = c1[i];
+                inner[i][2] = c2[i];
+                inner[i][3] = c3[i];
+            }
+
+            return Self{ .inner = inner };
+        }
+
+        pub fn buildRowsFromVec(v0: vec.Vec4(T), v1: vec.Vec4(T), v2: vec.Vec4(T), v3: vec.Vec4(T)) Self {
+            var inner = Self.zeros().inner;
+
+            inner[0][0], inner[0][1], inner[0][2], inner[0][3] = .{ v0.x, v0.y, v0.z, v0.w };
+            inner[1][0], inner[1][1], inner[1][2], inner[1][3] = .{ v1.x, v1.y, v1.z, v1.w };
+            inner[2][0], inner[2][1], inner[2][2], inner[2][3] = .{ v2.x, v2.y, v2.z, v2.w };
+            inner[3][0], inner[3][1], inner[3][2], inner[3][3] = .{ v3.x, v3.y, v3.z, v3.w };
+
+            return Self{ .inner = inner };
+        }
+
+        pub fn buildColumnsFromVec(c0: vec.Vec4(T), c1: vec.Vec4(T), c2: vec.Vec4(T), c3: vec.Vec4(T)) Self {
+            var inner = Self.zeros().inner;
+
+            inner[0][0], inner[0][1], inner[0][2], inner[0][3] = .{ c0.x, c1.x, c2.x, c3.x };
+            inner[1][0], inner[1][1], inner[1][2], inner[1][3] = .{ c0.y, c1.y, c2.y, c3.y };
+            inner[2][0], inner[2][1], inner[2][2], inner[2][3] = .{ c0.z, c1.z, c2.z, c3.z };
+            inner[3][0], inner[3][1], inner[3][2], inner[3][3] = .{ c0.w, c1.w, c2.w, c3.w };
 
             return Self{ .inner = inner };
         }
