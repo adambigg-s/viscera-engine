@@ -53,9 +53,6 @@ pub const Application = struct {
 
                 const window_size = win.getTerminalDimensionsPixel() catch null;
                 std.debug.print("\x1b[33hscreen size info: {any}\n", .{window_size});
-
-                const font_size = win.getFontSize() catch null;
-                std.debug.print("\x1b[34hfont size: {any}\n", .{font_size});
             }
         }
     }

@@ -4,7 +4,7 @@ pub const app = @import("application.zig");
 pub const sim = @import("gamestate.zig");
 pub const win = @import("winapi.zig");
 pub const ren = @import("renderer/terminal_renderer.zig");
-pub const uti = @import("renderer//render_utils.zig");
+pub const uti = @import("renderer/render_utils.zig");
 pub const vec = @import("math/vector.zig");
 pub const mat = @import("math/matrix.zig");
 
@@ -36,7 +36,7 @@ pub fn linearInterpolateVec3(start: vec.Vec3(f32), end: vec.Vec3(f32), time: f32
 }
 
 pub fn nearestLowerOdd(comptime T: type, value: T) T {
-    return @divFloor(value, 2) * 2 - 1;
+    return @divFloor(value + 1, 2) * 2 - 1;
 }
 
 test "nearest odd testing" {

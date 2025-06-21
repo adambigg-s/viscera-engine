@@ -31,15 +31,18 @@ pub const Player = struct {
     right: vec.Vec3(f32),
     up: vec.Vec3(f32),
     world_up: vec.Vec3(f32),
+
     pitch: f32,
     yaw: f32,
+
     vertical_fov: f32,
+    near_plane: f32,
+    far_plane: f32,
+
     look_sensitivity: f32,
     yaw_modifier: f32,
     pitch_modifier: f32,
     move_speed: f32,
-    near_plane: f32,
-    far_plane: f32,
 
     const Self = @This();
     const Mat4 = mat.Mat4(f32);
@@ -53,15 +56,18 @@ pub const Player = struct {
             .right = vec.Vec3(f32).build(1, 0, 0),
             .up = vec.Vec3(f32).build(0, 1, 0),
             .world_up = vec.Vec3(f32).build(0, 1, 0),
+
             .pitch = 0,
-            .yaw = 0,
+            .yaw = math.degreesToRadians(90),
+
             .vertical_fov = math.degreesToRadians(45),
+            .near_plane = 0.1,
+            .far_plane = 1000,
+
             .look_sensitivity = 1.2,
             .yaw_modifier = 0.02,
             .pitch_modifier = 0.02,
-            .move_speed = 0.1,
-            .near_plane = 0.01,
-            .far_plane = 5000,
+            .move_speed = 0.02,
         };
         output.updateVectors();
 
@@ -69,8 +75,9 @@ pub const Player = struct {
     }
 
     pub fn getViewMatrix(self: *const Self) Mat4 {
-        var matrix = Mat4.identity();
-        var m = &matrix.inner;
+        // https://medium.com/@carmencincotti/lets-look-at-magic-lookat-matrices-c77e53ebdf78
+        // basically use this ^^ but with row-major matrices
+        var m = Mat4.identity().inner;
 
         m[0][0], m[0][1], m[0][2], m[0][3] = .{
             self.right.x,
@@ -91,12 +98,12 @@ pub const Player = struct {
             self.front.innerProduct(self.pos),
         };
 
-        return matrix;
+        return Mat4{ .inner = m };
     }
 
     pub fn getProjectionMatrix(self: *const Self, aspect_ratio: f32) Mat4 {
-        var matrix = Mat4.identity();
-        var m = &matrix.inner;
+        // https://www.scratchapixel.com/lessons/3d-basic-rendering/perspective-and-orthographic-projection-matrix/orthographic-projection-matrix.html
+        var m = Mat4.identity().inner;
 
         const inv_half_fov, const inv_near_far = .{
             1 / @tan(self.vertical_fov / 2),
@@ -110,7 +117,13 @@ pub const Player = struct {
         m[3][2] = -1;
         m[3][3] = 0;
 
-        return matrix;
+        return Mat4{ .inner = m };
+    }
+
+    pub fn update(self: *Self, inputs: *Inputs) void {
+        self.updateTranslation(inputs);
+        self.updateRotation(inputs);
+        self.updateVectors();
     }
 
     fn updateTranslation(self: *Self, inputs: *Inputs) void {
@@ -134,12 +147,6 @@ pub const Player = struct {
         }
     }
 
-    pub fn update(self: *Self, inputs: *Inputs) void {
-        self.updateTranslation(inputs);
-        self.updateRotation(inputs);
-        self.updateVectors();
-    }
-
     fn updateRotation(self: *Self, inputs: *Inputs) void {
         const mouse_dx: f32, const mouse_dy: f32 = .{
             @floatFromInt(inputs.mouse_delta.x),
@@ -152,7 +159,11 @@ pub const Player = struct {
 
         self.yaw -= math.degreesToRadians(yaw_delta);
         self.pitch -= math.degreesToRadians(pitch_delta);
-        self.pitch = math.clamp(self.pitch, math.degreesToRadians(-89), math.degreesToRadians(89));
+        self.pitch = math.clamp(
+            self.pitch,
+            math.degreesToRadians(-89),
+            math.degreesToRadians(89),
+        );
     }
 
     fn updateVectors(self: *Self) void {
@@ -186,15 +197,18 @@ pub const Inputs = struct {
     const Self = @This();
 
     pub fn init() !Self {
-        var output = Inputs{
+        const output = Inputs{
             .mouse_delta = vec.Vec2(i32).zeros(),
             .mouse_pos = vec.Vec2(i32).build(1920, 1080),
         };
-        // this prevents bugs where the first call is ub
-        // basically just calls the async key funcs a bunch of times to ensure update
-        for (0..100) |_| {
-            output.updateKeys();
-        }
+        _ = win.getKeyState(win.vk_w);
+        _ = win.getKeyState(win.vk_a);
+        _ = win.getKeyState(win.vk_s);
+        _ = win.getKeyState(win.vk_d);
+        _ = win.getKeyState(win.vk_r);
+        _ = win.getKeyState(win.vk_f);
+        _ = win.getKeyState(win.vk_escape);
+        _ = win.getKeyState(win.vk_mouse_lbutton);
 
         return output;
     }

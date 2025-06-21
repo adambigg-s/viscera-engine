@@ -21,6 +21,10 @@ pub fn Vec2(comptime T: type) type {
             return Self.build(value, value);
         }
 
+        pub fn swizzleVec3(vec: Vec3(T)) Self {
+            return Self.build(vec.x, vec.y);
+        }
+
         pub fn neg(self: Self) Self {
             return Self.build(-self.x, -self.y);
         }
@@ -86,6 +90,10 @@ pub fn Vec3(comptime T: type) type {
 
         pub fn splat(value: T) Self {
             return Self.build(value, value, value);
+        }
+
+        pub fn swizzleVec4(vec: Vec4(T)) Self {
+            return Self.build(vec.x, vec.y, vec.z);
         }
 
         pub fn neg(self: Self) Self {
