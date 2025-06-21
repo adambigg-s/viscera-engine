@@ -163,12 +163,14 @@ pub const Renderer = struct {
         const vertex0 = Vertex.build(Vec3.build(-0.5, -0.5, -2), ColFloat.build(1, 0.7, 0));
         const vertex1 = Vertex.build(Vec3.build(0.5, -0.5, -2), ColFloat.build(0, 1, 0.7));
         const vertex2 = Vertex.build(Vec3.build(0.0, 0.5, -2), ColFloat.build(0.7, 0, 1));
-        self.debugRenderPoint(vertex0, view_mat, proj_mat);
-        self.debugRenderPoint(vertex1, view_mat, proj_mat);
-        self.debugRenderPoint(vertex2, view_mat, proj_mat);
+        const vertex3 = Vertex.build(Vec3.build(1.0, 0.5, -2), ColFloat.build(1, 0.7, 0));
+        const vertex4 = Vertex.build(Vec3.build(0.5, -0.5, -2), ColFloat.build(0, 1, 0.7));
+        const vertex5 = Vertex.build(Vec3.build(0.0, 0.5, -2), ColFloat.build(0.7, 0, 1));
 
-        const triangle = Tri.build(vertex0, vertex1, vertex2);
-        self.renderTriangle(triangle, view_mat, proj_mat);
+        const tri1 = Tri.build(vertex0, vertex1, vertex2);
+        const tri2 = Tri.build(vertex3, vertex4, vertex5);
+        self.renderTriangle(tri1, view_mat, proj_mat);
+        self.renderTriangle(tri2, view_mat, proj_mat);
     }
 
     pub fn commitPass(self: *Self) !void {
