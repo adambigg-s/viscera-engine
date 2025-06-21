@@ -61,8 +61,8 @@ pub const Player = struct {
             .yaw = math.degreesToRadians(90),
 
             .vertical_fov = math.degreesToRadians(45),
-            .near_plane = 0.1,
-            .far_plane = 1000,
+            .near_plane = 1,
+            .far_plane = 50,
 
             .look_sensitivity = 1.2,
             .yaw_modifier = 0.02,
