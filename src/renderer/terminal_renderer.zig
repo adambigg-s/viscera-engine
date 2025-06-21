@@ -91,9 +91,7 @@ pub const BarycentricSystem = struct {
         return Vec3.build(apb, bpc, cpa).div(total_area);
     }
 
-    pub fn withinTriangle(self: *const Self, weights: Vec3) bool {
-        _ = .{self};
-
+    pub fn withinTriangle(_: *const Self, weights: Vec3) bool {
         return weights.x >= 0 and weights.y >= 0 and weights.z >= 0;
     }
 };
@@ -160,17 +158,84 @@ pub const Renderer = struct {
         const view_mat = simulation.player.getViewMatrix();
         const proj_mat = simulation.player.getProjectionMatrix(self.terminal_info.augmentedAR());
 
-        const vertex0 = Vertex.build(Vec3.build(-0.5, -0.5, -2), ColFloat.build(0, 0, 0));
-        const vertex1 = Vertex.build(Vec3.build(0.5, -0.5, -2), ColFloat.build(1, 0, 0));
-        const vertex2 = Vertex.build(Vec3.build(-0.5, 0.5, -2), ColFloat.build(0, 0, 0));
-        const vertex3 = Vertex.build(Vec3.build(0.5, -0.5, -2), ColFloat.build(0, 1, 0));
-        const vertex4 = Vertex.build(Vec3.build(-0.5, 0.5, -2), ColFloat.build(0, 0, 0));
-        const vertex5 = Vertex.build(Vec3.build(0.5, 0.5, -2), ColFloat.build(0, 0, 0));
+        const size = 0.8;
+        const front_tris = [_]Tri{
+            Tri.build(
+                Vertex.build(Vec3.build(size, -size, size), ColFloat.build(1, 0, 0)),
+                Vertex.build(Vec3.build(-size, size, size), ColFloat.build(1, 0, 0)),
+                Vertex.build(Vec3.build(-size, -size, size), ColFloat.build(0, 1, 0)),
+            ),
+            Tri.build(
+                Vertex.build(Vec3.build(size, -size, size), ColFloat.build(1, 0, 0)),
+                Vertex.build(Vec3.build(-size, size, size), ColFloat.build(1, 0, 0)),
+                Vertex.build(Vec3.build(size, size, size), ColFloat.build(0, 1, 0)),
+            ),
+        };
+        const back_tris = [_]Tri{
+            Tri.build(
+                Vertex.build(Vec3.build(size, -size, -size), ColFloat.build(1, 0, 0)),
+                Vertex.build(Vec3.build(-size, size, -size), ColFloat.build(1, 0, 0)),
+                Vertex.build(Vec3.build(-size, -size, -size), ColFloat.build(0, 1, 0)),
+            ),
+            Tri.build(
+                Vertex.build(Vec3.build(size, -size, -size), ColFloat.build(1, 0, 0)),
+                Vertex.build(Vec3.build(-size, size, -size), ColFloat.build(1, 0, 0)),
+                Vertex.build(Vec3.build(size, size, -size), ColFloat.build(0, 1, 0)),
+            ),
+        };
+        const up_tris = [_]Tri{
+            Tri.build(
+                Vertex.build(Vec3.build(size, -size, size), ColFloat.build(0, 1, 0)),
+                Vertex.build(Vec3.build(size, size, -size), ColFloat.build(0, 1, 0)),
+                Vertex.build(Vec3.build(size, size, size), ColFloat.build(0, 1, 0)),
+            ),
+            Tri.build(
+                Vertex.build(Vec3.build(size, -size, size), ColFloat.build(0, 1, 0)),
+                Vertex.build(Vec3.build(size, size, -size), ColFloat.build(0, 1, 0)),
+                Vertex.build(Vec3.build(size, -size, -size), ColFloat.build(0, 1, 0)),
+            ),
+        };
+        const down_tris = [_]Tri{
+            Tri.build(
+                Vertex.build(Vec3.build(-size, -size, size), ColFloat.build(0, 1, 0)),
+                Vertex.build(Vec3.build(-size, size, -size), ColFloat.build(0, 1, 0)),
+                Vertex.build(Vec3.build(-size, size, size), ColFloat.build(0, 1, 0)),
+            ),
+            Tri.build(
+                Vertex.build(Vec3.build(-size, -size, size), ColFloat.build(0, 1, 0)),
+                Vertex.build(Vec3.build(-size, size, -size), ColFloat.build(0, 1, 0)),
+                Vertex.build(Vec3.build(-size, -size, -size), ColFloat.build(0, 1, 0)),
+            ),
+        };
+        const left_tris = [_]Tri{
+            Tri.build(
+                Vertex.build(Vec3.build(-size, size, size), ColFloat.build(1, 0, 1)),
+                Vertex.build(Vec3.build(size, size, -size), ColFloat.build(1, 0, 1)),
+                Vertex.build(Vec3.build(size, size, size), ColFloat.build(1, 0, 1)),
+            ),
+            Tri.build(
+                Vertex.build(Vec3.build(-size, size, size), ColFloat.build(1, 0, 1)),
+                Vertex.build(Vec3.build(size, size, -size), ColFloat.build(1, 0, 1)),
+                Vertex.build(Vec3.build(-size, size, -size), ColFloat.build(1, 0, 1)),
+            ),
+        };
+        const right_tris = [_]Tri{
+            Tri.build(
+                Vertex.build(Vec3.build(-size, -size, size), ColFloat.build(1, 0, 1)),
+                Vertex.build(Vec3.build(size, -size, -size), ColFloat.build(1, 0, 1)),
+                Vertex.build(Vec3.build(size, -size, size), ColFloat.build(1, 0, 1)),
+            ),
+            Tri.build(
+                Vertex.build(Vec3.build(-size, -size, size), ColFloat.build(1, 0, 0)),
+                Vertex.build(Vec3.build(size, -size, -size), ColFloat.build(1, 1, 0)),
+                Vertex.build(Vec3.build(-size, -size, -size), ColFloat.build(1, 1, 0)),
+            ),
+        };
+        const triangles = front_tris ++ back_tris ++ up_tris ++ down_tris ++ left_tris ++ right_tris;
 
-        const tri1 = Tri.build(vertex0, vertex1, vertex2);
-        const tri2 = Tri.build(vertex3, vertex4, vertex5);
-        self.renderTriangle(tri1, view_mat, proj_mat);
-        self.renderTriangle(tri2, view_mat, proj_mat);
+        for (triangles) |tri| {
+            self.renderTriangle(tri, view_mat, proj_mat);
+        }
     }
 
     pub fn commitPass(self: *Self) !void {
@@ -180,10 +245,12 @@ pub const Renderer = struct {
 
         try writer.writeAll("\x1b[H");
         try writer.writeAll("\x1b[?25l");
+
         var pixel_brush = ColInt.zeros();
         for (0..self.height) |y| {
             for (0..self.width) |x| {
                 const color = self.main.get(x, y) orelse unreachable;
+
                 if (std.meta.eql(pixel_brush, color)) {
                     try writer.writeByte(' ');
                 } else {
@@ -191,8 +258,10 @@ pub const Renderer = struct {
                     pixel_brush = color;
                 }
             }
+
             try writer.writeByte('\n');
         }
+
         try writer.writeAll("\x1b[0m");
         try writer.writeAll("\x1b[?25h");
 
@@ -236,14 +305,19 @@ pub const Renderer = struct {
                     continue;
                 }
 
+                const depth = barycentric_weights.innerProduct(Vec3.build(v0.pos.z, v1.pos.z, v2.pos.z));
+                if (self.depth.get(@intCast(x), @intCast(y)).? < depth) {
+                    continue;
+                }
+
                 const color = Mat3.buildColumnsFromVec(
                     v0.color,
                     v1.color,
                     v2.color,
                 );
                 const pixel_color = color.mulVec(barycentric_weights);
-
                 _ = self.main.set(@intCast(x), @intCast(y), intColorFromFloat(pixel_color));
+                _ = self.depth.set(@intCast(x), @intCast(y), depth);
             }
         }
     }
@@ -255,7 +329,7 @@ pub const Renderer = struct {
         _ = self.main.set(
             @intFromFloat(screen_space.x),
             @intFromFloat(screen_space.y),
-            ColInt.build(255, 0, 0),
+            ColInt.build(0, 255, 255),
         );
     }
 
@@ -281,7 +355,7 @@ pub const Renderer = struct {
 
         const x, const y = .{
             ndc.x * half_width + half_width,
-            -ndc.y * half_height + half_height,
+            ndc.y * half_height * -1 + half_height,
         };
 
         return Vec3.build(x, y, ndc.z);
