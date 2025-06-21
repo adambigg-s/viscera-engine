@@ -53,6 +53,14 @@ pub const Tri = struct {
     }
 };
 
+pub fn intColorFromFloat(color: vec.Vec3(f32)) vec.Vec3(u8) {
+    return vec.Vec3(u8).build(
+        @intFromFloat(color.x * 255),
+        @intFromFloat(color.y * 255),
+        @intFromFloat(color.z * 255),
+    );
+}
+
 pub const BarycentricSystem = struct {
     a: Vec2,
     b: Vec2,
@@ -104,6 +112,7 @@ pub const Renderer = struct {
     const Vec2 = vec.Vec2(f32);
     const Vec3 = vec.Vec3(f32);
     const Vec4 = vec.Vec4(f32);
+    const Mat3 = mat.Mat3(f32);
     const Mat4 = mat.Mat4(f32);
     const ColInt = vec.Vec3(u8);
     const ColFloat = Vec3;
@@ -151,9 +160,9 @@ pub const Renderer = struct {
         const view_mat = simulation.player.getViewMatrix();
         const proj_mat = simulation.player.getProjectionMatrix(self.terminal_info.augmentedAR());
 
-        const vertex0 = Vertex.build(Vec3.build(-0.5, -0.5, -2), ColFloat.build(1, 0, 0));
-        const vertex1 = Vertex.build(Vec3.build(0.5, -0.5, -2), ColFloat.build(0, 1, 0));
-        const vertex2 = Vertex.build(Vec3.build(0.0, 0.5, -2), ColFloat.build(0, 0, 1));
+        const vertex0 = Vertex.build(Vec3.build(-0.5, -0.5, -2), ColFloat.build(1, 0.7, 0));
+        const vertex1 = Vertex.build(Vec3.build(0.5, -0.5, -2), ColFloat.build(0, 1, 0.7));
+        const vertex2 = Vertex.build(Vec3.build(0.0, 0.5, -2), ColFloat.build(0.7, 0, 1));
         self.debugRenderPoint(vertex0, view_mat, proj_mat);
         self.debugRenderPoint(vertex1, view_mat, proj_mat);
         self.debugRenderPoint(vertex2, view_mat, proj_mat);
@@ -210,6 +219,7 @@ pub const Renderer = struct {
 
     fn rasterizeTriangle(self: *Self, triangle: Tri) void {
         const triangle_bounds = triangle.boundingBox();
+        const v0, const v1, const v2 = triangle.verts;
         const barycentric_system = triangle.barycentricSystem();
 
         var y = triangle_bounds.min.y;
@@ -220,9 +230,18 @@ pub const Renderer = struct {
 
                 const barycentric_weights = barycentric_system.calculate(point);
 
-                if (barycentric_system.withinTriangle(barycentric_weights)) {
-                    _ = self.main.set(@intCast(x), @intCast(y), ColInt.build(255, 255, 255));
+                if (!barycentric_system.withinTriangle(barycentric_weights)) {
+                    continue;
                 }
+
+                const color = Mat3.buildColumns(
+                    &[_]f32{ v0.color.x, v1.color.x, v2.color.x },
+                    &[_]f32{ v0.color.y, v1.color.y, v2.color.y },
+                    &[_]f32{ v0.color.z, v1.color.z, v2.color.z },
+                );
+                const pixel_color = color.mulVec(barycentric_weights);
+
+                _ = self.main.set(@intCast(x), @intCast(y), intColorFromFloat(pixel_color));
             }
         }
     }

@@ -108,6 +108,30 @@ pub fn Mat3(comptime T: type) type {
             return Self{ .inner = inner };
         }
 
+        pub fn buildRows(v0: []const T, v1: []const T, v2: []const T) Self {
+            var inner = Self.zeros().inner;
+
+            for (0..Self.dim) |j| {
+                inner[0][j] = v0[j];
+                inner[1][j] = v1[j];
+                inner[2][j] = v2[j];
+            }
+
+            return Self{ .inner = inner };
+        }
+
+        pub fn buildColumns(c0: []const T, c1: []const T, c2: []const T) Self {
+            var inner = Self.zeros().inner;
+
+            for (0..Self.dim) |i| {
+                inner[i][0] = c0[i];
+                inner[i][1] = c1[i];
+                inner[i][2] = c2[i];
+            }
+
+            return Self{ .inner = inner };
+        }
+
         pub fn mulVec(self: *const Self, vector: vec.Vec3(T)) vec.Vec3(T) {
             const m = self.inner;
             const v = vector;
