@@ -19,13 +19,21 @@ pub const Vertex = struct {
 
 pub const Tri = struct {
     verts: [3]Vertex,
+
+    const Self = @This();
+
+    pub fn build(v0: Vertex, v1: Vertex, v2: Vertex) Self {
+        return Tri{ .verts = .{ v0, v1, v2 } };
+    }
 };
 
 pub const Renderer = struct {
     main: Buffer(ColInt),
     depth: Buffer(f32),
+
     width: usize,
     height: usize,
+
     terminal_info: uti.TerminalInfo,
 
     const Self = @This();
@@ -57,8 +65,10 @@ pub const Renderer = struct {
         return Renderer{
             .main = try Buffer(ColInt).init(width, height, allocator, ColInt.build(35, 35, 55)),
             .depth = try Buffer(f32).init(width, height, allocator, Self.infinity),
+
             .width = width,
             .height = height,
+
             .terminal_info = terminal_info,
         };
     }
@@ -74,8 +84,6 @@ pub const Renderer = struct {
     }
 
     pub fn renderSimulation(self: *Self, simulation: *sim.Simulation) void {
-        _ = .{ self, simulation };
-
         const vertex = Vertex.build(Vec3.build(0, 0, -2), ColFloat.build(1, 0, 0));
         const view_mat = simulation.player.getViewMatrix();
         const proj_mat = simulation.player.getProjectionMatrix(self.terminal_info.screen_aspect);
