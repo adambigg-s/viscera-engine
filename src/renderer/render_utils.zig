@@ -2,11 +2,25 @@ const lib = @import("../root.zig");
 const std = lib.std;
 const vec = lib.vec;
 
+pub fn BoundingBox(comptime T: type) type {
+    return struct {
+        min: Vec2,
+        max: Vec2,
+
+        const Self = @This();
+        const Vec2 = vec.Vec2(T);
+    };
+}
+
 pub const TerminalInfo = struct {
     screen_aspect: f32,
     char_apsect: f32,
 
     const Self = @This();
+
+    pub fn augmentedAR(self: *Self) f32 {
+        return self.screen_aspect / self.char_apsect;
+    }
 };
 
 pub fn Buffer(comptime T: type) type {

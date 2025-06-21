@@ -110,12 +110,16 @@ pub const Player = struct {
             1 / (self.near_plane - self.far_plane),
         };
 
-        m[0][0] = inv_half_fov / aspect_ratio;
-        m[1][1] = inv_half_fov;
-        m[2][2] = (self.far_plane + self.near_plane) * inv_near_far;
-        m[2][3] = (2 * self.far_plane * self.near_plane) * inv_near_far;
-        m[3][2] = -1;
-        m[3][3] = 0;
+        m[0][0], m[1][1], m[2][2], m[3][3] = .{
+            inv_half_fov / aspect_ratio,
+            inv_half_fov,
+            (self.far_plane + self.near_plane) * inv_near_far,
+            0,
+        };
+        m[2][3], m[3][2] = .{
+            (2 * self.far_plane * self.near_plane) * inv_near_far,
+            -1,
+        };
 
         return Mat4{ .inner = m };
     }
