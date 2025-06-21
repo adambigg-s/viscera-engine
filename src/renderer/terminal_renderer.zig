@@ -195,43 +195,44 @@ pub const Renderer = struct {
                 Vertex.build(Vec3.build(size, -size, -size), ColFloat.build(0, 1, 0)),
             ),
         };
-        const down_tris = [_]Tri{
-            Tri.build(
-                Vertex.build(Vec3.build(-size, -size, size), ColFloat.build(0, 1, 0)),
-                Vertex.build(Vec3.build(-size, size, -size), ColFloat.build(0, 1, 0)),
-                Vertex.build(Vec3.build(-size, size, size), ColFloat.build(0, 1, 0)),
-            ),
-            Tri.build(
-                Vertex.build(Vec3.build(-size, -size, size), ColFloat.build(0, 1, 0)),
-                Vertex.build(Vec3.build(-size, size, -size), ColFloat.build(0, 1, 0)),
-                Vertex.build(Vec3.build(-size, -size, -size), ColFloat.build(0, 1, 0)),
-            ),
-        };
-        const left_tris = [_]Tri{
-            Tri.build(
-                Vertex.build(Vec3.build(-size, size, size), ColFloat.build(1, 0, 1)),
-                Vertex.build(Vec3.build(size, size, -size), ColFloat.build(1, 0, 1)),
-                Vertex.build(Vec3.build(size, size, size), ColFloat.build(1, 0, 1)),
-            ),
-            Tri.build(
-                Vertex.build(Vec3.build(-size, size, size), ColFloat.build(1, 0, 1)),
-                Vertex.build(Vec3.build(size, size, -size), ColFloat.build(1, 0, 1)),
-                Vertex.build(Vec3.build(-size, size, -size), ColFloat.build(1, 0, 1)),
-            ),
-        };
-        const right_tris = [_]Tri{
-            Tri.build(
-                Vertex.build(Vec3.build(-size, -size, size), ColFloat.build(1, 0, 1)),
-                Vertex.build(Vec3.build(size, -size, -size), ColFloat.build(1, 0, 1)),
-                Vertex.build(Vec3.build(size, -size, size), ColFloat.build(1, 0, 1)),
-            ),
-            Tri.build(
-                Vertex.build(Vec3.build(-size, -size, size), ColFloat.build(1, 0, 0)),
-                Vertex.build(Vec3.build(size, -size, -size), ColFloat.build(1, 1, 0)),
-                Vertex.build(Vec3.build(-size, -size, -size), ColFloat.build(1, 1, 0)),
-            ),
-        };
-        const triangles = front_tris ++ back_tris ++ up_tris ++ down_tris ++ left_tris ++ right_tris;
+        // const down_tris = [_]Tri{
+        //     Tri.build(
+        //         Vertex.build(Vec3.build(-size, -size, size), ColFloat.build(0, 1, 0)),
+        //         Vertex.build(Vec3.build(-size, size, -size), ColFloat.build(0, 1, 0)),
+        //         Vertex.build(Vec3.build(-size, size, size), ColFloat.build(0, 1, 0)),
+        //     ),
+        //     Tri.build(
+        //         Vertex.build(Vec3.build(-size, -size, size), ColFloat.build(0, 1, 0)),
+        //         Vertex.build(Vec3.build(-size, size, -size), ColFloat.build(0, 1, 0)),
+        //         Vertex.build(Vec3.build(-size, -size, -size), ColFloat.build(0, 1, 0)),
+        //     ),
+        // };
+        // const left_tris = [_]Tri{
+        //     Tri.build(
+        //         Vertex.build(Vec3.build(-size, size, size), ColFloat.build(1, 0, 1)),
+        //         Vertex.build(Vec3.build(size, size, -size), ColFloat.build(1, 0, 1)),
+        //         Vertex.build(Vec3.build(size, size, size), ColFloat.build(1, 0, 1)),
+        //     ),
+        //     Tri.build(
+        //         Vertex.build(Vec3.build(-size, size, size), ColFloat.build(1, 0, 1)),
+        //         Vertex.build(Vec3.build(size, size, -size), ColFloat.build(1, 0, 1)),
+        //         Vertex.build(Vec3.build(-size, size, -size), ColFloat.build(1, 0, 1)),
+        //     ),
+        // };
+        // const right_tris = [_]Tri{
+        //     Tri.build(
+        //         Vertex.build(Vec3.build(-size, -size, size), ColFloat.build(1, 0, 1)),
+        //         Vertex.build(Vec3.build(size, -size, -size), ColFloat.build(1, 0, 1)),
+        //         Vertex.build(Vec3.build(size, -size, size), ColFloat.build(1, 0, 1)),
+        //     ),
+        //     Tri.build(
+        //         Vertex.build(Vec3.build(-size, -size, size), ColFloat.build(1, 0, 0)),
+        //         Vertex.build(Vec3.build(size, -size, -size), ColFloat.build(1, 1, 0)),
+        //         Vertex.build(Vec3.build(-size, -size, -size), ColFloat.build(1, 1, 0)),
+        //     ),
+        // };
+        // const triangles = front_tris ++ back_tris ++ up_tris ++ down_tris ++ left_tris ++ right_tris;
+        const triangles = front_tris ++ back_tris ++ up_tris;
 
         for (triangles) |tri| {
             self.renderTriangle(tri, view_mat, proj_mat);
@@ -297,16 +298,21 @@ pub const Renderer = struct {
         while (y <= triangle_bounds.max.y) : (y += 1) {
             var x = triangle_bounds.min.x;
             while (x <= triangle_bounds.max.x) : (x += 1) {
+                const intx: usize, const inty: usize = .{
+                    @intCast(x), @intCast(y),
+                };
                 const point = Vec2.build(@floatFromInt(x), @floatFromInt(y));
 
                 const barycentric_weights = barycentric_system.calculate(point);
-
                 if (!barycentric_system.withinTriangle(barycentric_weights)) {
                     continue;
                 }
 
-                const depth = barycentric_weights.innerProduct(Vec3.build(v0.pos.z, v1.pos.z, v2.pos.z));
-                if (self.depth.get(@intCast(x), @intCast(y)).? < depth) {
+                const depth, const curr_depth = .{
+                    barycentric_weights.innerProduct(Vec3.build(v0.pos.z, v1.pos.z, v2.pos.z)),
+                    self.depth.get(intx, inty).?,
+                };
+                if (depth >= curr_depth) {
                     continue;
                 }
 
@@ -316,8 +322,9 @@ pub const Renderer = struct {
                     v2.color,
                 );
                 const pixel_color = color.mulVec(barycentric_weights);
-                _ = self.main.set(@intCast(x), @intCast(y), intColorFromFloat(pixel_color));
-                _ = self.depth.set(@intCast(x), @intCast(y), depth);
+
+                _ = self.main.set(intx, inty, intColorFromFloat(pixel_color));
+                _ = self.depth.set(intx, inty, depth);
             }
         }
     }
