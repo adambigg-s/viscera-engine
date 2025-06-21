@@ -160,12 +160,12 @@ pub const Renderer = struct {
         const view_mat = simulation.player.getViewMatrix();
         const proj_mat = simulation.player.getProjectionMatrix(self.terminal_info.augmentedAR());
 
-        const vertex0 = Vertex.build(Vec3.build(-0.5, -0.5, -2), ColFloat.build(1, 0.7, 0));
-        const vertex1 = Vertex.build(Vec3.build(0.5, -0.5, -2), ColFloat.build(0, 1, 0.7));
-        const vertex2 = Vertex.build(Vec3.build(0.0, 0.5, -2), ColFloat.build(0.7, 0, 1));
-        const vertex3 = Vertex.build(Vec3.build(1.0, 0.5, -2), ColFloat.build(1, 0.7, 0));
-        const vertex4 = Vertex.build(Vec3.build(0.5, -0.5, -2), ColFloat.build(0, 1, 0.7));
-        const vertex5 = Vertex.build(Vec3.build(0.0, 0.5, -2), ColFloat.build(0.7, 0, 1));
+        const vertex0 = Vertex.build(Vec3.build(-0.5, -0.5, -2), ColFloat.build(0, 0, 0));
+        const vertex1 = Vertex.build(Vec3.build(0.5, -0.5, -2), ColFloat.build(1, 0, 0));
+        const vertex2 = Vertex.build(Vec3.build(-0.5, 0.5, -2), ColFloat.build(0, 0, 0));
+        const vertex3 = Vertex.build(Vec3.build(0.5, -0.5, -2), ColFloat.build(0, 1, 0));
+        const vertex4 = Vertex.build(Vec3.build(-0.5, 0.5, -2), ColFloat.build(0, 0, 0));
+        const vertex5 = Vertex.build(Vec3.build(0.5, 0.5, -2), ColFloat.build(0, 0, 0));
 
         const tri1 = Tri.build(vertex0, vertex1, vertex2);
         const tri2 = Tri.build(vertex3, vertex4, vertex5);
