@@ -41,16 +41,6 @@ pub const Tri = struct {
             .max = vec.Vec2(i32).build(maxx, maxy),
         };
     }
-
-    pub fn barycentricSystem(self: *const Self) BarycentricSystem {
-        const v0, const v1, const v2 = self.verts;
-
-        return BarycentricSystem{
-            .a = Vec2.swizzleVec3(v0.pos),
-            .b = Vec2.swizzleVec3(v1.pos),
-            .c = Vec2.swizzleVec3(v2.pos),
-        };
-    }
 };
 
 pub fn intColorFromFloat(color: vec.Vec3(f32)) vec.Vec3(u8) {
@@ -69,6 +59,16 @@ pub const BarycentricSystem = struct {
     const Self = @This();
     const Vec2 = vec.Vec2(f32);
     const Vec3 = vec.Vec3(f32);
+
+    pub fn buildFromTriangle(tri: *const Tri) BarycentricSystem {
+        const v0, const v1, const v2 = tri.verts;
+
+        return BarycentricSystem{
+            .a = Vec2.swizzleVec3(v0.pos),
+            .b = Vec2.swizzleVec3(v1.pos),
+            .c = Vec2.swizzleVec3(v2.pos),
+        };
+    }
 
     pub fn calculate(self: *const Self, point: Vec2) Vec3 {
         const ab, const bc, const ca = .{
@@ -254,7 +254,8 @@ pub const Renderer = struct {
     fn rasterizeTriangle(self: *Self, triangle: Tri) void {
         const triangle_bounds = triangle.boundingBox();
         const v0, const v1, const v2 = triangle.verts;
-        const barycentric_system = triangle.barycentricSystem();
+        const barycentric_system = BarycentricSystem.buildFromTriangle(&triangle);
+        const inv_depths = Vec3.build(1 / v0.pos.z, 1 / v1.pos.z, 1 / v2.pos.z);
 
         var y = triangle_bounds.min.y;
         while (y <= triangle_bounds.max.y) : (y += 1) {
@@ -270,13 +271,11 @@ pub const Renderer = struct {
                     continue;
                 }
 
-                // const depth, const curr_depth = .{
-                //     barycentric_weights.innerProduct(Vec3.build(v0.pos.z, v1.pos.z, v2.pos.z)),
-                //     self.depth.get(intx, inty).?,
-                // };
-                // if (depth >= curr_depth - Self.epsilon) {
-                //     // continue;
-                // }
+                const curr_depth = self.depth.get(intx, inty).?;
+                const depth = 1 / barycentric_weights.innerProduct(inv_depths);
+                if (depth >= curr_depth) {
+                    continue;
+                }
 
                 const color = Mat3.buildColumnsFromVec(
                     v0.color,
@@ -286,7 +285,7 @@ pub const Renderer = struct {
                 const pixel_color = color.mulVec(barycentric_weights);
 
                 _ = self.main.set(intx, inty, intColorFromFloat(pixel_color));
-                // _ = self.depth.set(intx, inty, depth);
+                _ = self.depth.set(intx, inty, depth);
             }
         }
     }
