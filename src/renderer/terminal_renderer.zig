@@ -86,7 +86,11 @@ pub const BarycentricSystem = struct {
             bc.crossProduct(bp),
             ca.crossProduct(cp),
         };
-        const total_area = apb + bpc + cpa;
+
+        var total_area = apb + bpc + cpa;
+        if (total_area < Renderer.epsilon and total_area > -Renderer.epsilon) {
+            total_area = 1;
+        }
 
         return Vec3.build(apb, bpc, cpa).div(total_area);
     }
@@ -94,6 +98,16 @@ pub const BarycentricSystem = struct {
     pub fn withinTriangle(_: *const Self, weights: Vec3) bool {
         return weights.x >= 0 and weights.y >= 0 and weights.z >= 0;
     }
+};
+
+pub const Texture = struct {
+    tex: Buffer,
+    height: usize,
+    width: usize,
+
+    const Self = @This();
+    const Vec3 = vec.Vec3(f32);
+    const Buffer = uti.Buffer(Vec3);
 };
 
 pub const Renderer = struct {
@@ -158,82 +172,15 @@ pub const Renderer = struct {
         const view_mat = simulation.player.getViewMatrix();
         const proj_mat = simulation.player.getProjectionMatrix(self.terminal_info.augmentedAR());
 
-        const size: f32 = 5;
-        const front_tris = [_]Tri{
+        const tris = [_]Tri{
             Tri.build(
-                Vertex.build(Vec3.build(size, -size, size), ColFloat.build(1, 0, 0)),
-                Vertex.build(Vec3.build(-size, size, size), ColFloat.build(1, 0, 0)),
-                Vertex.build(Vec3.build(-size, -size, size), ColFloat.build(0, 1, 0)),
-            ),
-            Tri.build(
-                Vertex.build(Vec3.build(size, -size, size), ColFloat.build(1, 0, 0)),
-                Vertex.build(Vec3.build(-size, size, size), ColFloat.build(1, 0, 0)),
-                Vertex.build(Vec3.build(size, size, size), ColFloat.build(0, 1, 0)),
+                Vertex.build(Vec3.build(-0.5, -0.5, -0.5), ColFloat.build(1, 0.7, 0)),
+                Vertex.build(Vec3.build(0.5, -0.5, -0.5), ColFloat.build(0, 1, 0.7)),
+                Vertex.build(Vec3.build(0.0, 0.5, -0.5), ColFloat.build(0.7, 0, 1)),
             ),
         };
-        const back_tris = [_]Tri{
-            Tri.build(
-                Vertex.build(Vec3.build(size, -size, -size), ColFloat.build(1, 0, 0)),
-                Vertex.build(Vec3.build(-size, size, -size), ColFloat.build(1, 0, 0)),
-                Vertex.build(Vec3.build(-size, -size, -size), ColFloat.build(0, 1, 0)),
-            ),
-            Tri.build(
-                Vertex.build(Vec3.build(size, -size, -size), ColFloat.build(1, 0, 0)),
-                Vertex.build(Vec3.build(-size, size, -size), ColFloat.build(1, 0, 0)),
-                Vertex.build(Vec3.build(size, size, -size), ColFloat.build(0, 1, 0)),
-            ),
-        };
-        const up_tris = [_]Tri{
-            Tri.build(
-                Vertex.build(Vec3.build(size, -size, size), ColFloat.build(0, 1, 0)),
-                Vertex.build(Vec3.build(size, size, -size), ColFloat.build(0, 1, 0)),
-                Vertex.build(Vec3.build(size, size, size), ColFloat.build(0, 1, 0)),
-            ),
-            Tri.build(
-                Vertex.build(Vec3.build(size, -size, size), ColFloat.build(0, 1, 0)),
-                Vertex.build(Vec3.build(size, size, -size), ColFloat.build(0, 1, 0)),
-                Vertex.build(Vec3.build(size, -size, -size), ColFloat.build(0, 1, 0)),
-            ),
-        };
-        const down_tris = [_]Tri{
-            Tri.build(
-                Vertex.build(Vec3.build(-size, -size, size), ColFloat.build(0, 1, 0)),
-                Vertex.build(Vec3.build(-size, size, -size), ColFloat.build(0, 1, 0)),
-                Vertex.build(Vec3.build(-size, size, size), ColFloat.build(0, 1, 0)),
-            ),
-            Tri.build(
-                Vertex.build(Vec3.build(-size, -size, size), ColFloat.build(0, 1, 0)),
-                Vertex.build(Vec3.build(-size, size, -size), ColFloat.build(0, 1, 0)),
-                Vertex.build(Vec3.build(-size, -size, -size), ColFloat.build(0, 1, 0)),
-            ),
-        };
-        const left_tris = [_]Tri{
-            Tri.build(
-                Vertex.build(Vec3.build(-size, size, size), ColFloat.build(1, 0, 1)),
-                Vertex.build(Vec3.build(size, size, -size), ColFloat.build(1, 0, 1)),
-                Vertex.build(Vec3.build(size, size, size), ColFloat.build(1, 0, 1)),
-            ),
-            Tri.build(
-                Vertex.build(Vec3.build(-size, size, size), ColFloat.build(1, 0, 1)),
-                Vertex.build(Vec3.build(size, size, -size), ColFloat.build(1, 0, 1)),
-                Vertex.build(Vec3.build(-size, size, -size), ColFloat.build(1, 0, 1)),
-            ),
-        };
-        const right_tris = [_]Tri{
-            Tri.build(
-                Vertex.build(Vec3.build(-size, -size, size), ColFloat.build(1, 0, 1)),
-                Vertex.build(Vec3.build(size, -size, -size), ColFloat.build(1, 0, 1)),
-                Vertex.build(Vec3.build(size, -size, size), ColFloat.build(1, 0, 1)),
-            ),
-            Tri.build(
-                Vertex.build(Vec3.build(-size, -size, size), ColFloat.build(1, 0, 0)),
-                Vertex.build(Vec3.build(size, -size, -size), ColFloat.build(1, 1, 0)),
-                Vertex.build(Vec3.build(-size, -size, -size), ColFloat.build(1, 1, 0)),
-            ),
-        };
-        const triangles = front_tris ++ back_tris ++ up_tris ++ down_tris ++ left_tris ++ right_tris;
 
-        for (triangles) |tri| {
+        for (tris) |tri| {
             self.renderTriangle(tri, view_mat, proj_mat);
         }
     }
@@ -307,13 +254,13 @@ pub const Renderer = struct {
                     continue;
                 }
 
-                const depth, const curr_depth = .{
-                    barycentric_weights.innerProduct(Vec3.build(v0.pos.z, v1.pos.z, v2.pos.z)),
-                    self.depth.get(intx, inty).?,
-                };
-                if (depth >= curr_depth - Self.epsilon) {
-                    continue;
-                }
+                // const depth, const curr_depth = .{
+                //     barycentric_weights.innerProduct(Vec3.build(v0.pos.z, v1.pos.z, v2.pos.z)),
+                //     self.depth.get(intx, inty).?,
+                // };
+                // if (depth >= curr_depth - Self.epsilon) {
+                //     // continue;
+                // }
 
                 const color = Mat3.buildColumnsFromVec(
                     v0.color,
@@ -323,7 +270,7 @@ pub const Renderer = struct {
                 const pixel_color = color.mulVec(barycentric_weights);
 
                 _ = self.main.set(intx, inty, intColorFromFloat(pixel_color));
-                _ = self.depth.set(intx, inty, depth);
+                // _ = self.depth.set(intx, inty, depth);
             }
         }
     }
@@ -361,7 +308,7 @@ pub const Renderer = struct {
 
         const x, const y = .{
             ndc.x * half_width + half_width,
-            ndc.y * half_height * -1 + half_height,
+            -ndc.y * half_height + half_height,
         };
 
         return Vec3.build(x, y, ndc.z);

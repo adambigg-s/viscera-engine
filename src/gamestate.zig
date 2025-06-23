@@ -51,7 +51,7 @@ pub const Player = struct {
 
     pub fn new() Self {
         var output = Player{
-            .pos = vec.Vec3(f32).zeros(),
+            .pos = vec.Vec3(f32).build(0, 0, 5),
             .front = vec.Vec3(f32).build(0, 0, -1),
             .right = vec.Vec3(f32).build(1, 0, 0),
             .up = vec.Vec3(f32).build(0, 1, 0),
@@ -61,8 +61,8 @@ pub const Player = struct {
             .yaw = math.degreesToRadians(90),
 
             .vertical_fov = math.degreesToRadians(45),
-            .near_plane = 1,
-            .far_plane = 50,
+            .near_plane = 0.01,
+            .far_plane = 100,
 
             .look_sensitivity = 1.2,
             .yaw_modifier = 0.02,
