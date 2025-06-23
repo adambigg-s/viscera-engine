@@ -172,11 +172,27 @@ pub const Renderer = struct {
         const view_mat = simulation.player.getViewMatrix();
         const proj_mat = simulation.player.getProjectionMatrix(self.terminal_info.augmentedAR());
 
+        const size = 0.5;
         const tris = [_]Tri{
             Tri.build(
-                Vertex.build(Vec3.build(-0.5, -0.5, -0.5), ColFloat.build(1, 0.7, 0)),
-                Vertex.build(Vec3.build(0.5, -0.5, -0.5), ColFloat.build(0, 1, 0.7)),
-                Vertex.build(Vec3.build(0.0, 0.5, -0.5), ColFloat.build(0.7, 0, 1)),
+                Vertex.build(Vec3.build(-size, size, size), ColFloat.build(1, 0.2, 0.2)),
+                Vertex.build(Vec3.build(size, -size, size), ColFloat.build(1, 0.2, 0.2)),
+                Vertex.build(Vec3.build(size, size, size), ColFloat.build(1, 0.2, 0.2)),
+            ),
+            Tri.build(
+                Vertex.build(Vec3.build(-size, size, size), ColFloat.build(1, 0.2, 0.2)),
+                Vertex.build(Vec3.build(size, -size, size), ColFloat.build(1, 0.2, 0.2)),
+                Vertex.build(Vec3.build(-size, -size, size), ColFloat.build(1, 0.2, 0.2)),
+            ),
+            Tri.build(
+                Vertex.build(Vec3.build(size, -size, size), ColFloat.build(0.2, 0.2, 1)),
+                Vertex.build(Vec3.build(size, size, -size), ColFloat.build(0.2, 0.2, 1)),
+                Vertex.build(Vec3.build(size, size, size), ColFloat.build(0.2, 0.2, 1)),
+            ),
+            Tri.build(
+                Vertex.build(Vec3.build(size, -size, size), ColFloat.build(0.2, 0.2, 1)),
+                Vertex.build(Vec3.build(size, size, -size), ColFloat.build(0.2, 0.2, 1)),
+                Vertex.build(Vec3.build(size, -size, -size), ColFloat.build(0.2, 0.2, 1)),
             ),
         };
 
