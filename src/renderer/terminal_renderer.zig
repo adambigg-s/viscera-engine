@@ -9,12 +9,18 @@ const uti = lib.uti;
 pub const Vertex = struct {
     pos: Vec3,
     color: Vec3,
+    clipspace_depth: f32,
 
     const Self = @This();
     const Vec3 = vec.Vec3(f32);
+    const Vec4 = vec.Vec4(f32);
 
     pub fn build(pos: Vec3, color: Vec3) Self {
-        return Vertex{ .pos = pos, .color = color };
+        return Vertex{ .pos = pos, .color = color, .clipspace_depth = Renderer.infinity };
+    }
+
+    pub fn buildProjected(pos: Vec4, color: Vec3) Self {
+        return Vertex{ .pos = Vec3.swizzleVec4(pos), .color = color, .clipspace_depth = pos.w };
     }
 };
 
@@ -237,7 +243,8 @@ pub const Renderer = struct {
         for (triangle.verts, 0..) |vertex, index| {
             if (self.worldToNDC(vertex, view, projection)) |ndc_vertex| {
                 const screen_space = self.NDCToScreenSpace(ndc_vertex.pos);
-                screen_vertices[index] = Vertex.build(screen_space, vertex.color);
+                const projected_position = Vec4.fromVec3(screen_space, ndc_vertex.clipspace_depth);
+                screen_vertices[index] = Vertex.buildProjected(projected_position, vertex.color);
             }
         }
 
@@ -255,7 +262,11 @@ pub const Renderer = struct {
         const triangle_bounds = triangle.boundingBox();
         const v0, const v1, const v2 = triangle.verts;
         const barycentric_system = BarycentricSystem.buildFromTriangle(&triangle);
-        const inv_depths = Vec3.build(1 / v0.pos.z, 1 / v1.pos.z, 1 / v2.pos.z);
+        const depths = Vec3.build(
+            v0.clipspace_depth,
+            v1.clipspace_depth,
+            v2.clipspace_depth,
+        );
 
         var y = triangle_bounds.min.y;
         while (y <= triangle_bounds.max.y) : (y += 1) {
@@ -272,7 +283,7 @@ pub const Renderer = struct {
                 }
 
                 const curr_depth = self.depth.get(intx, inty).?;
-                const depth = 1 / barycentric_weights.innerProduct(inv_depths);
+                const depth = barycentric_weights.innerProduct(depths);
                 if (depth >= curr_depth) {
                     continue;
                 }
@@ -315,18 +326,21 @@ pub const Renderer = struct {
             return null;
         }
 
-        return Vertex.build(ndc, world_space.color);
+        const projected_position = Vec4.fromVec3(ndc, clip_space.w);
+
+        return Vertex.buildProjected(projected_position, world_space.color);
     }
 
     fn NDCToScreenSpace(self: *Self, ndc: Vec3) Vec3 {
         const half_width, const half_height = self.halfDimensionsFloat();
 
-        const x, const y = .{
+        const x, const y, const z = .{
             ndc.x * half_width + half_width,
             -ndc.y * half_height + half_height,
+            ndc.z,
         };
 
-        return Vec3.build(x, y, ndc.z);
+        return Vec3.build(x, y, z);
     }
 
     fn withinViewFrustum(_: *Self, ndc: Vec3) bool {
